@@ -1,37 +1,19 @@
-Sprint 1 Goal
+Sprint 1
 
-Deliver basic deck and card persistence functionality.
-
-Stories Committed
-
-    US-01
-
-    US-02
-
-    US-05
-
-Tasks
-
-    Setup project scaffold
-
-    Setup DB schema
-
-    Implement deck create
-
-    Implement deck list
-
-    Implement card create
-
-    Basic test validation
+Goal
+Establish backend project structure and database design.
 
 Completed
-
-    (You fill this in at sprint end.)
+Spring Boot setup
+Initial API endpoint
+Database schema planning
+PostgreSQL integration
 
 Challenges
+Initial framework setup and architecture decisions, database design and setup
 
-    (You reflect here.)
+Changes / Decisions
+Design decisions made.
 
-Adjustments for Next Sprint
-
-    (You reflect here.)
+Next Steps
+What moves to the next sprint.
