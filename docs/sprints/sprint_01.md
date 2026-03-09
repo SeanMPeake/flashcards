@@ -2,30 +2,42 @@ Sprint 1
 
 Goal
 
-    Define the project scope and architecture for the flashcards application and establish the initial backend foundation. This included planning the application structure, designing the core data model, setting up the development environment, and implementing the first working API endpoint connected to a database.
+Establish the project foundation by defining the application scope, selecting the technology stack, designing the initial data model, and implementing a working backend connected to a database.
 
 Work Completed
 
-    During the first sprint, significant time was spent planning the project before implementation began. This included defining the purpose of the application, outlining the system architecture, and drafting initial documentation such as the project overview and backlog structure. Key design decisions were made regarding the technology stack, backend framework, database choice, and overall application structure.
+The first sprint focused heavily on project planning and initial system setup. Early work involved defining the purpose of the application, outlining the system architecture, and drafting the initial project documentation and backlog.
 
-    After planning was complete, the backend project was initialized using Spring Boot with a Maven wrapper. PostgreSQL was installed and configured locally, and the application was connected to the database using Spring Data JPA. The initial database schema was designed with two primary entities: Deck and Card, with a one-to-many relationship between them.
+After planning, the backend project was initialized using Spring Boot with a Maven wrapper. PostgreSQL was installed and configured locally, and the application was connected to the database using Spring Data JPA. The initial schema was designed around two core entities: **Deck** and **Card**, with a one-to-many relationship.
 
-    Entity models and repository interfaces were implemented, allowing Spring Data JPA to automatically generate database access logic. A startup data loader was created to seed initial deck and card data into the database. Finally, the /api/decks endpoint was updated to return real database-backed data instead of hardcoded values, confirming that the backend, persistence layer, and API routing were working together correctly.
+Entity models and repository interfaces were implemented to enable database access through Spring Data JPA. A startup data loader was added to seed initial decks and cards for development and testing.
+
+Two API endpoints were implemented:
+
+GET /api/decks
+Returns all available decks.
+
+GET /api/decks/{id}
+Returns a specific deck and its cards.
+
+Basic controller tests were also introduced to verify that these endpoints return successful responses and expected data structures.
 
 Challenges
 
-    The primary challenge during this sprint was the initial setup and architecture decisions required before implementation could begin. Since the project requirements were intentionally open-ended, time was required to determine the application's scope, select the technology stack, and design the initial system structure.
+A large portion of the sprint was spent defining the project direction before development could begin. Because the project requirements were open-ended, time was required to determine the application scope, choose the technology stack, and design the initial architecture.
 
-    Additional challenges included configuring the development environment, learning the Spring Boot framework and dependency structure, integrating PostgreSQL with the application, and establishing the correct relationships between entities in the database model.
+Additional challenges included configuring the development environment, becoming familiar with Spring Boot conventions, integrating PostgreSQL with the application, and implementing the initial entity relationships.
 
 Decisions Made
 
-    Several foundational design decisions were made during this sprint. The backend was implemented using Java with Spring Boot instead of Node.js in order to align with existing coursework and provide a stronger typed backend environment. PostgreSQL was selected as the database to allow the project to be deployable in a live environment later if needed.
+The backend was implemented using **Java with Spring Boot** rather than Node.js to better align with coursework and provide a strongly typed backend environment. **PostgreSQL** was selected as the database to support potential deployment beyond local development.
 
-    The database schema was intentionally kept simple, consisting of Deck and Card tables with a one-to-many relationship. Authentication and user ownership of decks were deferred to keep the project scope manageable. The scheduling logic for card review will be implemented later using a min-heap priority queue, with the database currently storing a basic priority value for each card.
+The initial database schema was intentionally kept simple with **Deck** and **Card** tables linked by a one-to-many relationship. Authentication and user ownership of decks were deferred to keep the project scope manageable.
+
+A **min-heap priority queue** is planned for the card scheduling algorithm, with the current schema storing a basic priority field that will support this logic later.
 
 Next Steps
 
-    Next steps for the project include expanding the API to support additional endpoints such as retrieving individual decks and cards, introducing a service layer to separate business logic from the controller layer, and beginning implementation of the card scheduling algorithm using the planned heap-based approach.
+The next sprint will focus on expanding the API, introducing a service layer to separate business logic from controllers, and beginning development of the study flow for reviewing cards.
 
-    Future work will also include refining the database model as needed, adding CRUD operations for decks and cards, and continuing to build out the application structure in preparation for the algorithm-focused components of the project.
+Future work will also include building a minimal user interface for selecting decks and viewing cards, implementing the scheduling algorithm, and expanding test coverage as application logic becomes more complex.
