@@ -98,7 +98,15 @@ The product backlog will evolve over the course of the project and will be refin
 
 9. Current System Status
 
-The backend project has been initialized and connected to PostgreSQL. The initial Deck and Card entities have been implemented along with repository interfaces for database interaction. The database schema is automatically generated through JPA, and starter data is seeded at application startup. A working endpoint (/api/decks) returns deck and card data from the database.
+The backend project has been initialized and connected to PostgreSQL. The initial Deck and Card entities have been implemented along with repository interfaces for database interaction. The database schema is automatically generated through JPA, and starter data is seeded at application startup. Two API endpoints are currently available:
+
+GET /api/decks  
+Returns all decks and their associated cards.
+
+GET /api/decks/{id}  
+Returns a specific deck and its cards. A 404 response is returned if the deck does not exist.
+
+Basic controller-level tests have been implemented to verify these endpoints using mocked repository responses.
 
 10. API Endpoints
 
@@ -106,35 +114,36 @@ The backend exposes a REST API for interacting with flashcard decks and cards. E
 
 Current Endpoints
 
-GET /api/decks
-Returns all decks currently stored in the system, including their associated cards.
+    GET /api/decks
+    Returns all decks currently stored in the system, including their associated cards.
+
+    GET /api/decks/{id}
+    Returns a specific deck and its cards.
 
 Planned Endpoints
 
-GET /api/decks/{id}
-Returns a specific deck and its cards.
 
-POST /api/decks
-Creates a new flashcard deck.
+    POST /api/decks
+    Creates a new flashcard deck.
 
-PUT /api/decks/{id}
-Updates an existing deck.
+    PUT /api/decks/{id}
+    Updates an existing deck.
 
-DELETE /api/decks/{id}
-Deletes a deck and its associated cards.
+    DELETE /api/decks/{id}
+    Deletes a deck and its associated cards.
 
-GET /api/cards/{id}
-Returns a specific flashcard.
+    GET /api/cards/{id}
+    Returns a specific flashcard.
 
-POST /api/cards
-Creates a new card within a deck.
+    POST /api/cards
+    Creates a new card within a deck.
 
-PUT /api/cards/{id}
-Updates an existing card.
+    PUT /api/cards/{id}
+    Updates an existing card.
 
-DELETE /api/cards/{id}
-Deletes a flashcard.
+    DELETE /api/cards/{id}
+    Deletes a flashcard.
 
-GET /api/study/{deckId}
-Returns the next card to review for a given deck based on the scheduling algorithm.
+    GET /api/study/{deckId}
+    Returns the next card to review for a given deck based on the scheduling algorithm.
 
