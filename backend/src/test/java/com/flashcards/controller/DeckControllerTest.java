@@ -43,6 +43,7 @@ class DeckControllerTest {
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].name").value("Java Basics"))
                 .andExpect(jsonPath("$[0].cardCount").value(2))
+                .andExpect(jsonPath("$[0].cards").doesNotExist())
                 .andExpect(jsonPath("$[1].name").value("SDLC Terms"));
     }
 
