@@ -2,6 +2,7 @@ package com.flashcards.controller;
 
 import com.flashcards.dto.response.CardResponse;
 import com.flashcards.dto.response.DeckResponse;
+import com.flashcards.dto.response.DeckSummaryResponse;
 import com.flashcards.exception.DeckNotFoundException;
 import com.flashcards.service.DeckService;
 import org.junit.jupiter.api.DisplayName;
@@ -31,13 +32,8 @@ class DeckControllerTest {
     @Test
     @DisplayName("GET /api/decks returns all decks")
     void getDecksReturnsAllDecks() throws Exception {
-        LocalDateTime now = LocalDateTime.now();
-
-        CardResponse card1 = new CardResponse(1L, "What is a class?", "A blueprint for creating objects.", 1, now, now);
-        CardResponse card2 = new CardResponse(2L, "What is inheritance?", "A way for one class to derive from another.", 2, now, now);
-
-        DeckResponse deck1 = new DeckResponse(1L, "Java Basics", "Core Java review cards", now, now, 2, List.of(card1, card2));
-        DeckResponse deck2 = new DeckResponse(2L, "SDLC Terms", "Software development life cycle concepts", now, now, 0, List.of());
+        DeckSummaryResponse deck1 = new DeckSummaryResponse(1L, "Java Basics", "Core Java review cards", 2);
+        DeckSummaryResponse deck2 = new DeckSummaryResponse(2L, "SDLC Terms", "Software development life cycle concepts", 0);
 
         given(deckService.getDecks()).willReturn(List.of(deck1, deck2));
 
@@ -46,8 +42,7 @@ class DeckControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].name").value("Java Basics"))
-                .andExpect(jsonPath("$[0].cards.length()").value(2))
-                .andExpect(jsonPath("$[0].cards[0].frontText").value("What is a class?"))
+                .andExpect(jsonPath("$[0].cardCount").value(2))
                 .andExpect(jsonPath("$[1].name").value("SDLC Terms"));
     }
 

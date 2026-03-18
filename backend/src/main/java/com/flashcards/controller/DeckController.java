@@ -1,6 +1,7 @@
 package com.flashcards.controller;
 
 import com.flashcards.dto.response.DeckResponse;
+import com.flashcards.dto.response.DeckSummaryResponse;
 import com.flashcards.service.DeckService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,7 +21,7 @@ public class DeckController {
     }
 
     @GetMapping
-    public List<DeckResponse> getDecks() {
+    public List<DeckSummaryResponse> getDecks() {
         return deckService.getDecks();
     }
 

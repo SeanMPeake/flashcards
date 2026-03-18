@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcards Study App</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <main class="app-shell">
+        <section id="welcome-view" class="view">
+            <div class="hero-card">
+                <p class="eyebrow">Flashcards Study App</p>
+                <h1>Choose a mode</h1>
+                <p class="subtitle">Start studying now or move into deck-building later.</p>
+                <div class="mode-actions">
+                    <button id="study-mode-button" type="button">Study Mode</button>
+                    <button id="edit-mode-button" type="button" disabled>Build/Edit Decks</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="deck-selection-view" class="view hidden">
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Study Mode</p>
+                        <h2>Select a deck</h2>
+                    </div>
+                    <button id="back-to-home-button" type="button" class="secondary-button">Back</button>
+                </div>
+
+                <div id="deck-list" class="deck-list"></div>
+                <p id="deck-list-status" class="status-message hidden"></p>
+            </div>
+        </section>
+
+        <section id="study-view" class="view hidden">
+            <div class="panel study-panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Study Deck</p>
+                        <h2 id="deck-title">Deck Title</h2>
+                        <p id="card-position" class="status-message">Card 1 of 1</p>
+                    </div>
+                    <button id="back-to-decks-button" type="button" class="secondary-button">Back to Decks</button>
+                </div>
+
+                <div id="study-empty-state" class="empty-state hidden">
+                    <h3>No Cards Found</h3>
+                    <p>This deck does not have any cards yet.</p>
+                </div>
+
+                <button id="flashcard" class="flashcard hidden" type="button">
+                    <span id="card-face-label" class="card-face-label">Question</span>
+                    <span id="card-text" class="card-text">Card text goes here</span>
+                </button>
+
+                <div class="controls">
+                    <button id="prev-button" type="button">Previous</button>
+                    <button id="next-button" type="button">Next</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="/app.js"></script>
+</body>
+</html>

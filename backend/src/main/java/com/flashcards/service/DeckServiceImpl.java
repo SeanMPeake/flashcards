@@ -2,6 +2,7 @@ package com.flashcards.service;
 
 import com.flashcards.dto.response.CardResponse;
 import com.flashcards.dto.response.DeckResponse;
+import com.flashcards.dto.response.DeckSummaryResponse;
 import com.flashcards.exception.DeckNotFoundException;
 import com.flashcards.model.Card;
 import com.flashcards.model.Deck;
@@ -20,10 +21,10 @@ public class DeckServiceImpl implements DeckService {
     }
 
     @Override
-    public List<DeckResponse> getDecks() {
+    public List<DeckSummaryResponse> getDecks() {
         return deckRepository.findAll()
                 .stream()
-                .map(this::toResponse)
+                .map(this::toSummaryResponse)
                 .toList();
     }
 
@@ -51,6 +52,17 @@ public class DeckServiceImpl implements DeckService {
                 deck.getUpdatedAt(),
                 cards.size(),
                 cards
+        );
+    }
+
+    private DeckSummaryResponse toSummaryResponse(Deck deck) {
+        int cardCount = deck.getCards() == null ? 0 : deck.getCards().size();
+
+        return new DeckSummaryResponse(
+                deck.getId(),
+                deck.getName(),
+                deck.getDescription(),
+                cardCount
         );
     }
 
