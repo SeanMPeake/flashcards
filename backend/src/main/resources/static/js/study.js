@@ -11,6 +11,8 @@ import {
     nextButtonEl
 } from "./dom.js";
 
+// State for the active study session.
+// This tracks the selected deck, the current card position, and whether the card is flipped.
 let selectedDeck = null;
 let currentCardIndex = 0;
 let isFlipped = false;
@@ -23,6 +25,7 @@ function hasCards(deck) {
     return Boolean(deck && deck.cards && deck.cards.length > 0);
 }
 
+// When a new deck is selected, always restart at the first card and show the front side.
 function resetStudyPosition() {
     currentCardIndex = 0;
     isFlipped = false;
@@ -44,6 +47,7 @@ export function clearSelectedDeck() {
     selectedDeck = null;
 }
 
+// Renders either the empty study state or the currently selected card.
 export function renderStudyView() {
     if (!hasSelectedDeck()) {
         deckTitleEl.textContent = "Deck Title";
@@ -77,6 +81,7 @@ export function renderStudyView() {
     nextButtonEl.disabled = currentCardIndex === selectedDeck.cards.length - 1;
 }
 
+// Card flipping is handled entirely in the frontend by swapping which side's text is shown.
 export function flipCard() {
     if (!hasCards(selectedDeck)) {
         return;

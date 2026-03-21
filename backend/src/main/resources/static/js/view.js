@@ -6,6 +6,7 @@ import {
     deckListStatusEl
 } from "./dom.js";
 
+// Only one main screen should be visible at a time.
 export function showView(viewName) {
     welcomeViewEl.classList.add("hidden");
     deckSelectionViewEl.classList.add("hidden");
@@ -29,6 +30,7 @@ export function setDeckListStatus(message, isVisible) {
     }
 }
 
+// Builds one deck-selection button from summary data returned by the list endpoint.
 function createDeckButton(deck, onSelect) {
     const button = document.createElement("button");
     button.type = "button";

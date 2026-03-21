@@ -1,3 +1,5 @@
+// Centralized DOM references for the study-mode UI.
+// Keeping selectors in one module makes the rest of the frontend easier to read and update.
 export const welcomeViewEl = document.getElementById("welcome-view");
 export const deckSelectionViewEl = document.getElementById("deck-selection-view");
 export const studyViewEl = document.getElementById("study-view");

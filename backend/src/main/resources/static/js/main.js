@@ -18,6 +18,7 @@ import {
     showPreviousCard
 } from "./study.js";
 
+// The deck selection screen only needs summary data, not full card payloads.
 async function loadDeckSummaries() {
     clearDeckList();
     setDeckListStatus("Loading decks...", true);
@@ -30,6 +31,7 @@ async function loadDeckSummaries() {
     }
 }
 
+// Full deck details are fetched only after a user chooses a deck to study.
 async function selectDeck(deckId) {
     try {
         const deck = await fetchDeckById(deckId);
@@ -43,6 +45,7 @@ async function selectDeck(deckId) {
     }
 }
 
+// Wire up navigation and study interactions after the module loads.
 studyModeButtonEl.addEventListener("click", async () => {
     showView("deckSelection");
     await loadDeckSummaries();
