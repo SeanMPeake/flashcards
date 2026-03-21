@@ -35,21 +35,13 @@ class DeckServiceImplTest {
 
     @Test
     @DisplayName("getDecks returns deck summaries")
-    void getDecksReturnsDeckSummaries() throws Exception {
-        LocalDateTime now = LocalDateTime.now();
+    void getDecksReturnsDeckSummaries() {
+        List<DeckSummaryResponse> summaries = List.of(
+                new DeckSummaryResponse(1L, "Java Basics", "Core Java review cards", 2),
+                new DeckSummaryResponse(2L, "SQL Basics", "Intro database review", 0)
+        );
 
-        Deck deck1 = new Deck("Java Basics", "Core Java review cards", now, now);
-        deck1.setCards(List.of(
-                createCard(1L, deck1, "What is a class?", "A blueprint for creating objects.", 1, now, now),
-                createCard(2L, deck1, "What is inheritance?", "A way for one class to derive from another.", 2, now, now)
-        ));
-        setId(deck1, 1L);
-
-        Deck deck2 = new Deck("SQL Basics", "Intro database review", now, now);
-        deck2.setCards(List.of());
-        setId(deck2, 2L);
-
-        given(deckRepository.findAll()).willReturn(List.of(deck1, deck2));
+        given(deckRepository.findDeckSummaries()).willReturn(summaries);
 
         List<DeckSummaryResponse> result = deckService.getDecks();
 
@@ -63,7 +55,7 @@ class DeckServiceImplTest {
     @Test
     @DisplayName("getDecks returns empty list when repository is empty")
     void getDecksReturnsEmptyListWhenRepositoryEmpty() {
-        given(deckRepository.findAll()).willReturn(List.of());
+        given(deckRepository.findDeckSummaries()).willReturn(List.of());
 
         List<DeckSummaryResponse> result = deckService.getDecks();
 

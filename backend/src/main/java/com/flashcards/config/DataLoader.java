@@ -14,9 +14,12 @@ import java.util.List;
 @Configuration
 public class DataLoader {
 
+    // Seeds starter data for development and testing when the application starts.
     @Bean
     CommandLineRunner loadData(DeckRepository deckRepository, CardRepository cardRepository) {
         return args -> {
+            // Only seed data if the database is empty so the same records are not duplicated
+            // each time the application restarts.
             if (deckRepository.count() == 0) {
                 LocalDateTime now = LocalDateTime.now();
 

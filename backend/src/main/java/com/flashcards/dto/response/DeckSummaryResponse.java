@@ -17,6 +17,11 @@ public class DeckSummaryResponse {
         this.cardCount = cardCount;
     }
 
+    // Used by the JPQL summary query because COUNT(...) is returned as a Long.
+    public DeckSummaryResponse(Long id, String name, String description, Long cardCount) {
+        this(id, name, description, cardCount == null ? 0 : cardCount.intValue());
+    }
+
     public Long getId() {
         return id;
     }

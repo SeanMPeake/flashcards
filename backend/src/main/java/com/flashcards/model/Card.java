@@ -12,6 +12,9 @@ public class Card {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Each card belongs to one deck. This is the back side of the bidirectional
+    // relationship and is excluded from recursive JSON serialization if entities
+    // are returned directly instead of being mapped to DTOs.
     @ManyToOne
     @JoinColumn(name = "deck_id", nullable = false)
     @JsonBackReference

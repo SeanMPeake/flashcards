@@ -25,6 +25,10 @@ public class Deck {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    // A deck owns many cards. The Jackson reference annotation helps prevent
+    // infinite recursion if entity objects are serialized directly to JSON.
+    // The API now mainly returns DTOs, so DTOs define the response shape,
+    // but these annotations still act as a useful safeguard on the entity model.
     @OneToMany(mappedBy = "deck", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<Card> cards = new ArrayList<>();

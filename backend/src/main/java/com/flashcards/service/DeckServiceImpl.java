@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+// Handles deck read operations and maps JPA entities into DTOs
+// so controllers do not return persistence models directly.
 @Service
 public class DeckServiceImpl implements DeckService {
 
@@ -22,10 +24,7 @@ public class DeckServiceImpl implements DeckService {
 
     @Override
     public List<DeckSummaryResponse> getDecks() {
-        return deckRepository.findAll()
-                .stream()
-                .map(this::toSummaryResponse)
-                .toList();
+        return deckRepository.findDeckSummaries();
     }
 
     @Override
@@ -36,6 +35,8 @@ public class DeckServiceImpl implements DeckService {
         return toResponse(deck);
     }
 
+    // Builds the full deck response used by the single-deck endpoint,
+    // including the nested card data needed for study mode.
     private DeckResponse toResponse(Deck deck) {
         List<CardResponse> cards = deck.getCards() == null
                 ? List.of()
@@ -55,17 +56,7 @@ public class DeckServiceImpl implements DeckService {
         );
     }
 
-    private DeckSummaryResponse toSummaryResponse(Deck deck) {
-        int cardCount = deck.getCards() == null ? 0 : deck.getCards().size();
-
-        return new DeckSummaryResponse(
-                deck.getId(),
-                deck.getName(),
-                deck.getDescription(),
-                cardCount
-        );
-    }
-
+    // Centralizes card-to-DTO mapping so card response fields stay consistent.
     private CardResponse toCardResponse(Card card) {
         return new CardResponse(
                 card.getId(),
