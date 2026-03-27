@@ -38,13 +38,24 @@ public class Card {
     public Card() {
     }
 
-    public Card(Deck deck, String frontText, String backText, Integer priority, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public Card(Deck deck, String frontText, String backText, Integer priority) {
         this.deck = deck;
         this.frontText = frontText;
         this.backText = backText;
         this.priority = priority;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
+    }
+
+    // Set timestamps automatically on first save. updatedAt is also kept in sync on any subsequent update.
+    @PrePersist
+    private void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    private void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 
     public Long getId() {

@@ -14,7 +14,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -65,12 +64,10 @@ class DeckServiceImplTest {
     @Test
     @DisplayName("getDeckById returns deck with mapped cards")
     void getDeckByIdReturnsDeckWithMappedCards() throws Exception {
-        LocalDateTime now = LocalDateTime.now();
-
-        Deck deck = new Deck("SQL Basics", "Intro database review", now, now);
+        Deck deck = new Deck("SQL Basics", "Intro database review");
         setId(deck, 1L);
 
-        Card card = createCard(10L, deck, "What does SQL stand for?", "Structured Query Language.", 1, now, now);
+        Card card = createCard(10L, deck, "What does SQL stand for?", "Structured Query Language.", 1);
         deck.setCards(List.of(card));
 
         given(deckRepository.findById(1L)).willReturn(Optional.of(deck));
@@ -90,9 +87,7 @@ class DeckServiceImplTest {
     @Test
     @DisplayName("getDeckById returns empty cards when deck has no cards")
     void getDeckByIdReturnsEmptyCardsWhenDeckHasNoCards() throws Exception {
-        LocalDateTime now = LocalDateTime.now();
-
-        Deck deck = new Deck("Empty Deck", "No cards yet", now, now);
+        Deck deck = new Deck("Empty Deck", "No cards yet");
         deck.setCards(List.of());
         setId(deck, 5L);
 
@@ -113,9 +108,8 @@ class DeckServiceImplTest {
         assertThrows(DeckNotFoundException.class, () -> deckService.getDeckById(999L));
     }
 
-    private Card createCard(Long id, Deck deck, String frontText, String backText, Integer priority,
-                            LocalDateTime createdAt, LocalDateTime updatedAt) throws Exception {
-        Card card = new Card(deck, frontText, backText, priority, createdAt, updatedAt);
+    private Card createCard(Long id, Deck deck, String frontText, String backText, Integer priority) throws Exception {
+        Card card = new Card(deck, frontText, backText, priority);
         setId(card, id);
         return card;
     }
