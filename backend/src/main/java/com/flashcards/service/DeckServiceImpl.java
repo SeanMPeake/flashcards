@@ -38,9 +38,7 @@ public class DeckServiceImpl implements DeckService {
     // Builds the full deck response used by the single-deck endpoint,
     // including the nested card data needed for study mode.
     private DeckResponse toResponse(Deck deck) {
-        List<CardResponse> cards = deck.getCards() == null
-                ? List.of()
-                : deck.getCards()
+        List<CardResponse> cards = deck.getCards()
                 .stream()
                 .map(this::toCardResponse)
                 .toList();

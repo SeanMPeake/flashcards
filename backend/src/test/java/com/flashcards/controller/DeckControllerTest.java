@@ -78,11 +78,24 @@ class DeckControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/decks/{id} returns 404 when deck is not found")
+    @DisplayName("GET /api/decks/{id} returns 404 with error body when deck is not found")
     void getDeckByIdReturnsNotFound() throws Exception {
         given(deckService.getDeckById(999L)).willThrow(new DeckNotFoundException(999L));
 
         mockMvc.perform(get("/api/decks/999"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.message").value("Deck not found with id: 999"));
+    }
+
+    @Test
+    @DisplayName("GET /api/decks/{id} returns 500 with generic error body on unexpected exception")
+    void getDeckByIdReturnsInternalServerError() throws Exception {
+        given(deckService.getDeckById(1L)).willThrow(new RuntimeException("unexpected"));
+
+        mockMvc.perform(get("/api/decks/1"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.message").value("An unexpected error occurred."));
     }
 }
