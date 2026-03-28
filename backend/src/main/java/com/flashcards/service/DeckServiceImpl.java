@@ -8,6 +8,7 @@ import com.flashcards.model.Card;
 import com.flashcards.model.Deck;
 import com.flashcards.repository.DeckRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -22,11 +23,15 @@ public class DeckServiceImpl implements DeckService {
         this.deckRepository = deckRepository;
     }
 
+    // readOnly = true signals that no writes will occur, allowing the
+    // database to skip locking overhead and preventing accidental persistence.
+    @Transactional(readOnly = true)
     @Override
     public List<DeckSummaryResponse> getDecks() {
         return deckRepository.findDeckSummaries();
     }
 
+    @Transactional(readOnly = true)
     @Override
     public DeckResponse getDeckById(Long id) {
         Deck deck = deckRepository.findById(id)

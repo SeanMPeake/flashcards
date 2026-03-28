@@ -3,6 +3,7 @@ package com.flashcards.controller;
 import com.flashcards.dto.response.DeckResponse;
 import com.flashcards.dto.response.DeckSummaryResponse;
 import com.flashcards.service.DeckService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,12 +22,12 @@ public class DeckController {
     }
 
     @GetMapping
-    public List<DeckSummaryResponse> getDecks() {
-        return deckService.getDecks();
+    public ResponseEntity<List<DeckSummaryResponse>> getDecks() {
+        return ResponseEntity.ok(deckService.getDecks());
     }
 
     @GetMapping("/{id}")
-    public DeckResponse getDeckById(@PathVariable Long id) {
-        return deckService.getDeckById(id);
+    public ResponseEntity<DeckResponse> getDeckById(@PathVariable Long id) {
+        return ResponseEntity.ok(deckService.getDeckById(id));
     }
 }
