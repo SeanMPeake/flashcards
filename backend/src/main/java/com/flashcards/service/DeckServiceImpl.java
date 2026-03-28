@@ -1,5 +1,7 @@
 package com.flashcards.service;
 
+import com.flashcards.dto.request.CreateDeckRequest;
+import com.flashcards.dto.request.UpdateDeckRequest;
 import com.flashcards.dto.response.CardResponse;
 import com.flashcards.dto.response.DeckResponse;
 import com.flashcards.dto.response.DeckSummaryResponse;
@@ -38,6 +40,34 @@ public class DeckServiceImpl implements DeckService {
                 .orElseThrow(() -> new DeckNotFoundException(id));
 
         return toResponse(deck);
+    }
+
+    @Transactional
+    @Override
+    public DeckResponse createDeck(CreateDeckRequest request) {
+        Deck deck = new Deck(request.getName(), request.getDescription());
+        return toResponse(deckRepository.save(deck));
+    }
+
+    @Transactional
+    @Override
+    public DeckResponse updateDeck(Long id, UpdateDeckRequest request) {
+        Deck deck = deckRepository.findById(id)
+                .orElseThrow(() -> new DeckNotFoundException(id));
+
+        deck.setName(request.getName());
+        deck.setDescription(request.getDescription());
+
+        return toResponse(deckRepository.save(deck));
+    }
+
+    @Transactional
+    @Override
+    public void deleteDeck(Long id) {
+        if (!deckRepository.existsById(id)) {
+            throw new DeckNotFoundException(id);
+        }
+        deckRepository.deleteById(id);
     }
 
     // Builds the full deck response used by the single-deck endpoint,

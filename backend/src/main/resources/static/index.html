@@ -15,7 +15,7 @@
                 <p class="subtitle">Start studying now or move into deck-building later.</p>
                 <div class="mode-actions">
                     <button id="study-mode-button" type="button">Study Mode</button>
-                    <button id="edit-mode-button" type="button" disabled>Build/Edit Decks</button>
+                    <button id="edit-mode-button" type="button">Build/Edit Decks</button>
                 </div>
             </div>
         </section>
@@ -59,6 +59,88 @@
                 <div class="controls">
                     <button id="prev-button" type="button">Previous</button>
                     <button id="next-button" type="button">Next</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="edit-deck-selection-view" class="view hidden">
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Build / Edit Mode</p>
+                        <h2>Select a deck</h2>
+                    </div>
+                    <button id="edit-back-to-home-button" type="button" class="secondary-button">Back</button>
+                </div>
+
+                <button id="add-deck-button" type="button" class="primary-button add-button">+ New Deck</button>
+
+                <div id="edit-deck-list" class="deck-list"></div>
+                <p id="edit-deck-list-status" class="status-message hidden"></p>
+            </div>
+        </section>
+
+        <section id="create-deck-view" class="view hidden">
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Build / Edit Mode</p>
+                        <h2>New Deck</h2>
+                    </div>
+                    <button id="create-deck-back-button" type="button" class="secondary-button">Back</button>
+                </div>
+
+                <label class="edit-label" for="create-deck-name-input">Deck Name</label>
+                <input id="create-deck-name-input" type="text" class="edit-input" placeholder="e.g. Java Basics" />
+                <label class="edit-label" for="create-deck-description-input">Description (optional)</label>
+                <input id="create-deck-description-input" type="text" class="edit-input" placeholder="What is this deck about?" />
+                <div class="form-actions create-deck-actions">
+                    <button id="create-deck-submit-button" type="button" class="primary-button">Create Deck</button>
+                </div>
+                <p id="create-deck-status" class="status-message hidden"></p>
+            </div>
+        </section>
+
+        <section id="edit-view" class="view hidden">
+            <div class="panel edit-panel">
+                <div class="panel-header">
+                    <div class="deck-edit-fields">
+                        <p class="eyebrow">Edit Deck</p>
+                        <input id="edit-deck-name-input" type="text" class="edit-input edit-heading-input" />
+                        <input id="edit-deck-description-input" type="text" class="edit-input" placeholder="Description (optional)" />
+                    </div>
+                    <div class="edit-header-actions">
+                        <button id="save-deck-button" type="button" class="primary-button">Save Deck</button>
+                        <button id="delete-deck-button" type="button" class="danger-button">Delete Deck</button>
+                        <button id="back-to-edit-decks-button" type="button" class="secondary-button">Back</button>
+                    </div>
+                </div>
+
+                <p id="edit-status" class="status-message hidden"></p>
+
+                <div class="edit-content">
+                    <div class="card-sidebar">
+                        <button id="add-card-button" type="button" class="primary-button add-button">+ New Card</button>
+                        <div id="card-sidebar-list" class="card-sidebar-list"></div>
+                    </div>
+
+                    <div class="card-editor">
+                        <div id="card-editor-empty-state" class="empty-state">
+                            <h3>No Card Selected</h3>
+                            <p>Select a card from the list or create a new one.</p>
+                        </div>
+
+                        <div id="card-editor-form" class="card-editor-form hidden">
+                            <label class="edit-label" for="edit-card-front">Question</label>
+                            <textarea id="edit-card-front" class="edit-textarea"></textarea>
+                            <label class="edit-label" for="edit-card-back">Answer</label>
+                            <textarea id="edit-card-back" class="edit-textarea"></textarea>
+                            <div class="card-editor-actions">
+                                <button id="save-card-button" type="button" class="primary-button">Save Card</button>
+                                <button id="delete-card-button" type="button" class="danger-button">Delete Card</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>

@@ -252,6 +252,208 @@ h2 {
     display: none;
 }
 
+/* — Edit mode — */
+
+.edit-panel {
+    width: min(100%, 960px);
+}
+
+.deck-edit-fields {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.edit-header-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+    align-items: flex-start;
+}
+
+.edit-content {
+    display: flex;
+    gap: 24px;
+    height: 480px;
+}
+
+.card-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--line);
+    padding-right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+}
+
+.card-sidebar-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    /* min-height: 0 is required for overflow-y: auto to work inside a flex column */
+    min-height: 0;
+    flex: 1;
+}
+
+.card-sidebar-item {
+    width: 100%;
+    flex-shrink: 0;
+    padding: 10px 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fffaf2;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.card-sidebar-item:hover,
+.card-sidebar-item:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+}
+
+.card-sidebar-item.active {
+    background: var(--panel-strong);
+    border-color: var(--accent);
+}
+
+.card-editor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.card-editor-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.card-editor-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.edit-input {
+    width: 100%;
+    padding: 10px 14px;
+    font: inherit;
+    color: var(--text);
+    background: #fffaf2;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    outline: none;
+    transition: border-color 0.18s ease;
+}
+
+.edit-input:focus {
+    border-color: var(--accent);
+}
+
+.edit-heading-input {
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.edit-label {
+    display: block;
+    margin-top: 16px;
+    margin-bottom: 6px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent-strong);
+}
+
+.edit-label:first-child {
+    margin-top: 0;
+}
+
+.edit-textarea {
+    width: 100%;
+    padding: 12px 14px;
+    font: inherit;
+    color: var(--text);
+    background: #fffaf2;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    outline: none;
+    resize: vertical;
+    min-height: 100px;
+    transition: border-color 0.18s ease;
+}
+
+.edit-textarea:focus {
+    border-color: var(--accent);
+}
+
+.primary-button {
+    padding: 10px 18px;
+    background: var(--accent);
+    color: #fff9f3;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    font: inherit;
+    transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.primary-button:hover,
+.primary-button:focus-visible {
+    background: var(--accent-strong);
+    transform: translateY(-1px);
+    outline: none;
+}
+
+.add-button {
+    width: 100%;
+}
+
+#add-deck-button {
+    margin-bottom: 14px;
+}
+
+.create-deck-actions {
+    margin-top: 20px;
+}
+
+.danger-button {
+    padding: 10px 18px;
+    background: transparent;
+    color: #9b2c2c;
+    border: 1px solid #c87171;
+    border-radius: 999px;
+    cursor: pointer;
+    font: inherit;
+    transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.danger-button:hover,
+.danger-button:focus-visible {
+    background: #fff0f0;
+    transform: translateY(-1px);
+    outline: none;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+}
+
 @media (max-width: 720px) {
     .app-shell {
         padding: 18px;

@@ -1,5 +1,7 @@
 package com.flashcards.service;
 
+import com.flashcards.dto.request.CreateDeckRequest;
+import com.flashcards.dto.request.UpdateDeckRequest;
 import com.flashcards.dto.response.DeckResponse;
 import com.flashcards.dto.response.DeckSummaryResponse;
 import com.flashcards.exception.DeckNotFoundException;
@@ -21,7 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 
 @ExtendWith(MockitoExtension.class)
 class DeckServiceImplTest {
@@ -106,6 +110,75 @@ class DeckServiceImplTest {
         given(deckRepository.findById(999L)).willReturn(Optional.empty());
 
         assertThrows(DeckNotFoundException.class, () -> deckService.getDeckById(999L));
+    }
+
+    @Test
+    @DisplayName("createDeck saves and returns mapped response")
+    void createDeckSavesAndReturnsResponse() throws Exception {
+        CreateDeckRequest request = new CreateDeckRequest();
+        request.setName("New Deck");
+        request.setDescription("A new deck");
+
+        Deck saved = new Deck("New Deck", "A new deck");
+        setId(saved, 3L);
+
+        given(deckRepository.save(any(Deck.class))).willReturn(saved);
+
+        DeckResponse result = deckService.createDeck(request);
+
+        assertEquals(3L, result.getId());
+        assertEquals("New Deck", result.getName());
+        assertEquals("A new deck", result.getDescription());
+        assertEquals(0, result.getCardCount());
+    }
+
+    @Test
+    @DisplayName("updateDeck updates fields and returns mapped response")
+    void updateDeckUpdatesFieldsAndReturnsResponse() throws Exception {
+        Deck deck = new Deck("Old Name", "Old description");
+        setId(deck, 1L);
+
+        UpdateDeckRequest request = new UpdateDeckRequest();
+        request.setName("New Name");
+        request.setDescription("New description");
+
+        given(deckRepository.findById(1L)).willReturn(Optional.of(deck));
+        given(deckRepository.save(deck)).willReturn(deck);
+
+        DeckResponse result = deckService.updateDeck(1L, request);
+
+        assertEquals("New Name", result.getName());
+        assertEquals("New description", result.getDescription());
+    }
+
+    @Test
+    @DisplayName("updateDeck throws when deck is missing")
+    void updateDeckThrowsWhenDeckMissing() {
+        UpdateDeckRequest request = new UpdateDeckRequest();
+        request.setName("Name");
+        request.setDescription("Description");
+
+        given(deckRepository.findById(999L)).willReturn(Optional.empty());
+
+        assertThrows(DeckNotFoundException.class, () -> deckService.updateDeck(999L, request));
+    }
+
+    @Test
+    @DisplayName("deleteDeck removes deck when found")
+    void deleteDeckRemovesDeck() {
+        given(deckRepository.existsById(1L)).willReturn(true);
+
+        deckService.deleteDeck(1L);
+
+        then(deckRepository).should().deleteById(1L);
+    }
+
+    @Test
+    @DisplayName("deleteDeck throws when deck is missing")
+    void deleteDeckThrowsWhenDeckMissing() {
+        given(deckRepository.existsById(999L)).willReturn(false);
+
+        assertThrows(DeckNotFoundException.class, () -> deckService.deleteDeck(999L));
     }
 
     private Card createCard(Long id, Deck deck, String frontText, String backText, Integer priority) throws Exception {

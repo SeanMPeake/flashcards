@@ -16,8 +16,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.mockito.BDDMockito.willThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(DeckController.class)
@@ -97,5 +100,74 @@ class DeckControllerTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.status").value(500))
                 .andExpect(jsonPath("$.message").value("An unexpected error occurred."));
+    }
+
+    @Test
+    @DisplayName("POST /api/decks creates deck and returns 201")
+    void createDeckReturnsCreatedDeck() throws Exception {
+        LocalDateTime now = LocalDateTime.now();
+        DeckResponse created = new DeckResponse(1L, "Java Basics", "Core Java review cards", now, now, 0, List.of());
+
+        given(deckService.createDeck(any())).willReturn(created);
+
+        mockMvc.perform(post("/api/decks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Java Basics\",\"description\":\"Core Java review cards\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.name").value("Java Basics"));
+    }
+
+    @Test
+    @DisplayName("PUT /api/decks/{id} updates deck and returns 200")
+    void updateDeckReturnsUpdatedDeck() throws Exception {
+        LocalDateTime now = LocalDateTime.now();
+        DeckResponse updated = new DeckResponse(1L, "Updated Name", "Updated description", now, now, 0, List.of());
+
+        given(deckService.updateDeck(eq(1L), any())).willReturn(updated);
+
+        mockMvc.perform(put("/api/decks/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Updated Name\",\"description\":\"Updated description\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Updated Name"));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/decks/{id} returns 204 when deck is deleted")
+    void deleteDeckReturnsNoContent() throws Exception {
+        mockMvc.perform(delete("/api/decks/1"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("POST /api/decks returns 400 when name is blank")
+    void createDeckReturnsBadRequestWhenNameIsBlank() throws Exception {
+        mockMvc.perform(post("/api/decks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"\",\"description\":\"Some description\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    @DisplayName("PUT /api/decks/{id} returns 400 when name is blank")
+    void updateDeckReturnsBadRequestWhenNameIsBlank() throws Exception {
+        mockMvc.perform(put("/api/decks/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"\",\"description\":\"Some description\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/decks/{id} returns 404 when deck is not found")
+    void deleteDeckReturnsNotFound() throws Exception {
+        willThrow(new DeckNotFoundException(999L)).given(deckService).deleteDeck(999L);
+
+        mockMvc.perform(delete("/api/decks/999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.message").value("Deck not found with id: 999"));
     }
 }

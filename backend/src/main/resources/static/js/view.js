@@ -2,6 +2,9 @@ import {
     welcomeViewEl,
     deckSelectionViewEl,
     studyViewEl,
+    editDeckSelectionViewEl,
+    createDeckViewEl,
+    editViewEl,
     deckListEl,
     deckListStatusEl
 } from "./dom.js";
@@ -11,6 +14,9 @@ export function showView(viewName) {
     welcomeViewEl.classList.add("hidden");
     deckSelectionViewEl.classList.add("hidden");
     studyViewEl.classList.add("hidden");
+    editDeckSelectionViewEl.classList.add("hidden");
+    createDeckViewEl.classList.add("hidden");
+    editViewEl.classList.add("hidden");
 
     if (viewName === "welcome") {
         welcomeViewEl.classList.remove("hidden");
@@ -18,6 +24,12 @@ export function showView(viewName) {
         deckSelectionViewEl.classList.remove("hidden");
     } else if (viewName === "study") {
         studyViewEl.classList.remove("hidden");
+    } else if (viewName === "editDeckSelection") {
+        editDeckSelectionViewEl.classList.remove("hidden");
+    } else if (viewName === "createDeck") {
+        createDeckViewEl.classList.remove("hidden");
+    } else if (viewName === "edit") {
+        editViewEl.classList.remove("hidden");
     }
 }
 

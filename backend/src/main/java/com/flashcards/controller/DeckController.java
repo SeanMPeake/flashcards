@@ -1,13 +1,14 @@
 package com.flashcards.controller;
 
+import com.flashcards.dto.request.CreateDeckRequest;
+import com.flashcards.dto.request.UpdateDeckRequest;
 import com.flashcards.dto.response.DeckResponse;
 import com.flashcards.dto.response.DeckSummaryResponse;
 import com.flashcards.service.DeckService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -29,5 +30,21 @@ public class DeckController {
     @GetMapping("/{id}")
     public ResponseEntity<DeckResponse> getDeckById(@PathVariable Long id) {
         return ResponseEntity.ok(deckService.getDeckById(id));
+    }
+
+    @PostMapping
+    public ResponseEntity<DeckResponse> createDeck(@Valid @RequestBody CreateDeckRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(deckService.createDeck(request));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<DeckResponse> updateDeck(@PathVariable Long id, @Valid @RequestBody UpdateDeckRequest request) {
+        return ResponseEntity.ok(deckService.updateDeck(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteDeck(@PathVariable Long id) {
+        deckService.deleteDeck(id);
+        return ResponseEntity.noContent().build();
     }
 }
