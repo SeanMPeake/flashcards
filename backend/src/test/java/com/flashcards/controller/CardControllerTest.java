@@ -12,7 +12,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -21,6 +20,8 @@ import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+// Web Layer Test — loads the Spring MVC slice (@WebMvcTest) to verify HTTP behavior.
+// The service layer is mocked; the controller, routing, and exception handler are exercised together.
 @WebMvcTest(CardController.class)
 class CardControllerTest {
 
@@ -33,8 +34,7 @@ class CardControllerTest {
     @Test
     @DisplayName("POST /api/decks/{deckId}/cards creates card and returns 201")
     void createCardReturnsCreatedCard() throws Exception {
-        LocalDateTime now = LocalDateTime.now();
-        CardResponse created = new CardResponse(1L, "What is JVM?", "Java Virtual Machine.", 0, now, now);
+        CardResponse created = new CardResponse(1L, "What is JVM?", "Java Virtual Machine.", 0);
 
         given(cardService.createCard(eq(1L), any())).willReturn(created);
 
@@ -63,8 +63,7 @@ class CardControllerTest {
     @Test
     @DisplayName("PUT /api/decks/{deckId}/cards/{cardId} updates card and returns 200")
     void updateCardReturnsUpdatedCard() throws Exception {
-        LocalDateTime now = LocalDateTime.now();
-        CardResponse updated = new CardResponse(1L, "Updated front", "Updated back", 0, now, now);
+        CardResponse updated = new CardResponse(1L, "Updated front", "Updated back", 0);
 
         given(cardService.updateCard(eq(1L), eq(1L), any())).willReturn(updated);
 
@@ -114,6 +113,17 @@ class CardControllerTest {
                         .content("{\"frontText\":\"\",\"backText\":\"\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/decks/{deckId}/cards/{cardId} returns 404 when deck is not found")
+    void deleteCardReturnsNotFoundWhenDeckMissing() throws Exception {
+        willThrow(new DeckNotFoundException(999L)).given(cardService).deleteCard(999L, 1L);
+
+        mockMvc.perform(delete("/api/decks/999/cards/1"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.message").value("Deck not found with id: 999"));
     }
 
     @Test
