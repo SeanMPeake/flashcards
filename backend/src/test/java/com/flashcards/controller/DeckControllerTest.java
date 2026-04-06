@@ -23,6 +23,8 @@ import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+// Web Layer Test — loads the Spring MVC slice (@WebMvcTest) to verify HTTP behavior.
+// The service layer is mocked; the controller, routing, and exception handler are exercised together.
 @WebMvcTest(DeckController.class)
 class DeckControllerTest {
 
@@ -66,7 +68,7 @@ class DeckControllerTest {
     void getDeckByIdReturnsDeck() throws Exception {
         LocalDateTime now = LocalDateTime.now();
 
-        CardResponse card = new CardResponse(1L, "What does SQL stand for?", "Structured Query Language.", 1, now, now);
+        CardResponse card = new CardResponse(1L, "What does SQL stand for?", "Structured Query Language.", 1);
         DeckResponse deck = new DeckResponse(1L, "SQL Basics", "Intro database review", now, now, 1, List.of(card));
 
         given(deckService.getDeckById(1L)).willReturn(deck);

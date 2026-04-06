@@ -25,6 +25,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
+// Service Unit Test — tests CardServiceImpl logic with repository dependencies mocked via Mockito.
+// No Spring context is loaded; only the service class itself is exercised.
 @ExtendWith(MockitoExtension.class)
 class CardServiceImplTest {
 

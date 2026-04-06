@@ -62,7 +62,7 @@ function createDeckButton(deck, onSelect) {
 
     button.append(name, description, meta);
     button.addEventListener("click", () => {
-        onSelect(deck.id);
+        onSelect(deck.id, deck.name);
     });
 
     return button;

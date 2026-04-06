@@ -29,9 +29,10 @@ public class CardServiceImpl implements CardService {
         Deck deck = deckRepository.findById(deckId)
                 .orElseThrow(() -> new DeckNotFoundException(deckId));
 
-        // New cards start with a default priority of 0. The scheduling
-        // algorithm will assign and update priority during study sessions.
-        Card card = new Card(deck, request.getFrontText(), request.getBackText(), 0);
+        // New cards are assigned priority = current deck size + 1, giving each card
+        // a unique starting value and placing it at the back of the scheduling queue.
+        int priority = cardRepository.countByDeckId(deckId) + 1;
+        Card card = new Card(deck, request.getFrontText(), request.getBackText(), priority);
         return toResponse(cardRepository.save(card));
     }
 
@@ -81,9 +82,7 @@ public class CardServiceImpl implements CardService {
                 card.getId(),
                 card.getFrontText(),
                 card.getBackText(),
-                card.getPriority(),
-                card.getCreatedAt(),
-                card.getUpdatedAt()
+                card.getPriority()
         );
     }
 }

@@ -95,9 +95,7 @@ public class DeckServiceImpl implements DeckService {
                 card.getId(),
                 card.getFrontText(),
                 card.getBackText(),
-                card.getPriority(),
-                card.getCreatedAt(),
-                card.getUpdatedAt()
+                card.getPriority()
         );
     }
 }

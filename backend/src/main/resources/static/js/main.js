@@ -1,4 +1,4 @@
-import { fetchDeckById, fetchDeckSummaries } from "./api.js";
+import { fetchDeckSummaries } from "./api.js";
 import {
     studyModeButtonEl,
     editModeButtonEl,
@@ -20,7 +20,6 @@ import {
 } from "./dom.js";
 import { clearDeckList, renderDeckList, setDeckListStatus, showView } from "./view.js";
 import {
-    clearSelectedDeck,
     flipCard,
     renderStudyView,
     setSelectedDeck,
@@ -53,18 +52,11 @@ async function loadDeckSummaries() {
     }
 }
 
-// Full deck details are fetched only after a user chooses a deck to study.
-async function selectDeck(deckId) {
-    try {
-        const deck = await fetchDeckById(deckId);
-        setSelectedDeck(deck);
-        renderStudyView();
-        showView("study");
-    } catch (error) {
-        clearSelectedDeck();
-        showView("deckSelection");
-        setDeckListStatus(error.message, true);
-    }
+// Starts a study session for the selected deck.
+// The deck summary already has the name; the backend handles loading card data.
+async function selectDeck(deckId, deckName) {
+    showView("study");
+    await setSelectedDeck(deckId, deckName);
 }
 
 // Wire up navigation and study interactions after the module loads.
@@ -146,7 +138,7 @@ backToDecksButtonEl.addEventListener("click", () => {
 
 flashcardEl.addEventListener("click", flipCard);
 prevButtonEl.addEventListener("click", showPreviousCard);
-nextButtonEl.addEventListener("click", showNextCard);
+nextButtonEl.addEventListener("click", async () => await showNextCard());
 
 renderStudyView();
 showView("welcome");
