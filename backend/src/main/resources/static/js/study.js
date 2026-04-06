@@ -1,3 +1,4 @@
+import { startStudySession, nextStudyCard } from "./api.js";
 import {
     deckTitleEl,
     cardPositionEl,
@@ -8,28 +9,21 @@ import {
     studyEmptyStateHeadingEl,
     studyEmptyStateTextEl,
     prevButtonEl,
-    nextButtonEl
+    nextButtonEl,
+    markForReviewCheckboxEl
 } from "./dom.js";
 
 // State for the active study session.
-// This tracks the selected deck, the current card position, and whether the card is flipped.
-let selectedDeck = null;
-let currentCardIndex = 0;
+// currentDeckId and currentCard replace the old deck object and index-based traversal.
+// The scheduler on the backend determines card order; the frontend only tracks what's currently showing.
+let currentDeckId = null;
+let currentCard = null;   // { id, frontText, backText, priority }
 let isFlipped = false;
 
-function hasSelectedDeck() {
-    return selectedDeck !== null;
-}
-
-function hasCards(deck) {
-    return Boolean(deck && deck.cards && deck.cards.length > 0);
-}
-
-// When a new deck is selected, always restart at the first card and show the front side.
-function resetStudyPosition() {
-    currentCardIndex = 0;
-    isFlipped = false;
-}
+// Navigation history stack — stores previously viewed cards so the user can go back
+// without affecting the scheduler. Implemented as a plain JS array used as a stack.
+// TODO: replace with custom Stack data structure in a later sprint step.
+const historyStack = [];
 
 function setStudyEmptyState(title, message) {
     studyEmptyStateHeadingEl.textContent = title;
@@ -38,75 +32,111 @@ function setStudyEmptyState(title, message) {
     flashcardEl.classList.add("hidden");
 }
 
-export function setSelectedDeck(deck) {
-    selectedDeck = deck;
-    resetStudyPosition();
+function renderCard() {
+    if (!currentCard) {
+        return;
+    }
+
+    studyEmptyStateEl.classList.add("hidden");
+    flashcardEl.classList.remove("hidden");
+
+    cardFaceLabelEl.textContent = isFlipped ? "Answer" : "Question";
+    cardTextEl.textContent = isFlipped ? currentCard.backText : currentCard.frontText;
+
+    // Reset the mark for review checkbox each time a new card is shown.
+    markForReviewCheckboxEl.checked = false;
+
+    // Previous is disabled until the navigation stack is fully wired up.
+    // The button remains in the DOM so it can be enabled when the stack is implemented.
+    prevButtonEl.disabled = true;
+    nextButtonEl.disabled = false;
+
+    // Card position display is a placeholder — will show unique cards viewed
+    // once the session HashSet tracker is implemented.
+    cardPositionEl.textContent = "Studying...";
+}
+
+// Called when the user selects a deck from the deck selection screen.
+// Starts a fresh session on the backend and renders the first card.
+export async function setSelectedDeck(deckId, deckName) {
+    currentDeckId = deckId;
+    currentCard = null;
+    isFlipped = false;
+    historyStack.length = 0;
+
+    deckTitleEl.textContent = deckName;
+
+    try {
+        currentCard = await startStudySession(deckId);
+        renderCard();
+    } catch (error) {
+        setStudyEmptyState("Unable to Start Session", error.message);
+        prevButtonEl.disabled = true;
+        nextButtonEl.disabled = true;
+    }
 }
 
 export function clearSelectedDeck() {
-    selectedDeck = null;
+    currentDeckId = null;
+    currentCard = null;
+    historyStack.length = 0;
 }
 
-// Renders either the empty study state or the currently selected card.
+// Renders the initial state before a deck is selected.
 export function renderStudyView() {
-    if (!hasSelectedDeck()) {
+    if (!currentCard) {
         deckTitleEl.textContent = "Deck Title";
         cardPositionEl.textContent = "";
         setStudyEmptyState("No Deck Selected", "Choose a deck to begin studying.");
         prevButtonEl.disabled = true;
         nextButtonEl.disabled = true;
+    }
+}
+
+// Flips between the question and answer side of the current card.
+export function flipCard() {
+    if (!currentCard) {
         return;
     }
-
-    deckTitleEl.textContent = selectedDeck.name;
-
-    if (!hasCards(selectedDeck)) {
-        cardPositionEl.textContent = "No cards";
-        setStudyEmptyState("No Cards Found", "This deck does not have any cards yet.");
-        prevButtonEl.disabled = true;
-        nextButtonEl.disabled = true;
-        return;
-    }
-
-    const currentCard = selectedDeck.cards[currentCardIndex];
-
-    studyEmptyStateEl.classList.add("hidden");
-    flashcardEl.classList.remove("hidden");
-
-    cardPositionEl.textContent = `Card ${currentCardIndex + 1} of ${selectedDeck.cards.length}`;
+    isFlipped = !isFlipped;
     cardFaceLabelEl.textContent = isFlipped ? "Answer" : "Question";
     cardTextEl.textContent = isFlipped ? currentCard.backText : currentCard.frontText;
-
-    prevButtonEl.disabled = currentCardIndex === 0;
-    nextButtonEl.disabled = currentCardIndex === selectedDeck.cards.length - 1;
 }
 
-// Card flipping is handled entirely in the frontend by swapping which side's text is shown.
-export function flipCard() {
-    if (!hasCards(selectedDeck)) {
+// Advances to the next card. Pushes the current card onto the history stack,
+// reads the mark for review flag, then asks the backend for the next scheduled card.
+export async function showNextCard() {
+    if (!currentCard) {
         return;
     }
 
-    isFlipped = !isFlipped;
-    renderStudyView();
+    const markForReview = markForReviewCheckboxEl.checked;
+
+    // Push current card onto history before moving forward.
+    historyStack.push(currentCard);
+
+    nextButtonEl.disabled = true;
+
+    try {
+        const nextCard = await nextStudyCard(
+            currentDeckId,
+            currentCard.id,
+            currentCard.priority,
+            markForReview
+        );
+        currentCard = nextCard;
+        isFlipped = false;
+        renderCard();
+    } catch (error) {
+        // If the next card call fails, restore the card we were on.
+        currentCard = historyStack.pop();
+        nextButtonEl.disabled = false;
+        cardPositionEl.textContent = error.message;
+    }
 }
 
+// Navigates back through the history stack without touching the scheduler.
+// Disabled until the stack is fully implemented — placeholder for future sprint work.
 export function showPreviousCard() {
-    if (!hasSelectedDeck() || currentCardIndex === 0) {
-        return;
-    }
-
-    currentCardIndex -= 1;
-    isFlipped = false;
-    renderStudyView();
-}
-
-export function showNextCard() {
-    if (!hasCards(selectedDeck) || currentCardIndex >= selectedDeck.cards.length - 1) {
-        return;
-    }
-
-    currentCardIndex += 1;
-    isFlipped = false;
-    renderStudyView();
+    // TODO: implement with custom Stack data structure
 }

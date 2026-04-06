@@ -79,3 +79,26 @@ export async function deleteCard(deckId, cardId) {
         throw new Error("Unable to delete card.");
     }
 }
+
+// Builds a fresh study session for the given deck and returns the first card due.
+export async function startStudySession(deckId) {
+    const response = await fetch(`/api/study/${deckId}/start`);
+    if (!response.ok) {
+        throw new Error("Unable to start study session.");
+    }
+    return response.json();
+}
+
+// Reschedules the card just viewed and returns the next card due.
+// markForReview flag determines whether the card is placed in the middle or back of the queue.
+export async function nextStudyCard(deckId, cardId, priority, markForReview) {
+    const response = await fetch(`/api/study/${deckId}/next`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cardId, priority, markForReview })
+    });
+    if (!response.ok) {
+        throw new Error("Unable to load next card.");
+    }
+    return response.json();
+}
