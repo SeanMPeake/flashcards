@@ -4,6 +4,7 @@ import com.flashcards.datastructure.MinHeap;
 import com.flashcards.datastructure.StudySession;
 import com.flashcards.dto.request.NextCardRequest;
 import com.flashcards.dto.response.CardResponse;
+import com.flashcards.dto.response.StudyStartResponse;
 import com.flashcards.exception.DeckNotFoundException;
 import com.flashcards.exception.EmptyDeckException;
 import com.flashcards.model.Card;
@@ -58,12 +59,14 @@ class StudyServiceImplTest {
         given(sessionManager.createSession(1L, cards)).willReturn(session);
         given(session.nextNode()).willReturn(node);
         given(session.findCard(1L)).willReturn(card);
+        given(session.getDeckSize()).willReturn(1);
 
-        CardResponse result = studyService.startSession(1L);
+        StudyStartResponse result = studyService.startSession(1L);
 
-        assertEquals(1L, result.getId());
-        assertEquals("What is JVM?", result.getFrontText());
-        assertEquals(1, result.getPriority());
+        assertEquals(1L, result.getCard().getId());
+        assertEquals("What is JVM?", result.getCard().getFrontText());
+        assertEquals(1, result.getCard().getPriority());
+        assertEquals(1, result.getTotalCards());
     }
 
     @Test

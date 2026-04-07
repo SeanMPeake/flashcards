@@ -2,6 +2,7 @@ package com.flashcards.controller;
 
 import com.flashcards.dto.request.NextCardRequest;
 import com.flashcards.dto.response.CardResponse;
+import com.flashcards.dto.response.StudyStartResponse;
 import com.flashcards.service.StudyService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,7 @@ public class StudyController {
     // Called when the user selects a deck in study mode.
     // Builds a fresh session and returns the first card.
     @GetMapping("/{deckId}/start")
-    public ResponseEntity<CardResponse> startSession(@PathVariable Long deckId) {
+    public ResponseEntity<StudyStartResponse> startSession(@PathVariable Long deckId) {
         return ResponseEntity.ok(studyService.startSession(deckId));
     }
 

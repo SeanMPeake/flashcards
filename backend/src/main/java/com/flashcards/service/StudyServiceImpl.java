@@ -4,6 +4,7 @@ import com.flashcards.datastructure.MinHeap;
 import com.flashcards.datastructure.StudySession;
 import com.flashcards.dto.request.NextCardRequest;
 import com.flashcards.dto.response.CardResponse;
+import com.flashcards.dto.response.StudyStartResponse;
 import com.flashcards.exception.DeckNotFoundException;
 import com.flashcards.exception.EmptyDeckException;
 import com.flashcards.model.Card;
@@ -34,7 +35,7 @@ public class StudyServiceImpl implements StudyService {
     // avoiding any stale state from a previous session.
     @Transactional(readOnly = true)
     @Override
-    public CardResponse startSession(Long deckId) {
+    public StudyStartResponse startSession(Long deckId) {
         if (!deckRepository.existsById(deckId)) {
             throw new DeckNotFoundException(deckId);
         }
@@ -46,7 +47,7 @@ public class StudyServiceImpl implements StudyService {
         }
 
         StudySession session = sessionManager.createSession(deckId, cards);
-        return buildResponse(session);
+        return new StudyStartResponse(buildResponse(session), session.getDeckSize());
     }
 
     // Reschedules the card just viewed, persists its new priority to the database,

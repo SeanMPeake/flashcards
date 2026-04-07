@@ -40,6 +40,10 @@ public class StudySession {
         return newPriority;
     }
 
+    public int getDeckSize() {
+        return deckSize;
+    }
+
     public boolean isEmpty() {
         return heap.isEmpty();
     }

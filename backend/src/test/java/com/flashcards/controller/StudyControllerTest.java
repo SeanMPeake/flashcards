@@ -1,6 +1,7 @@
 package com.flashcards.controller;
 
 import com.flashcards.dto.response.CardResponse;
+import com.flashcards.dto.response.StudyStartResponse;
 import com.flashcards.exception.DeckNotFoundException;
 import com.flashcards.exception.EmptyDeckException;
 import com.flashcards.service.StudyService;
@@ -33,14 +34,15 @@ class StudyControllerTest {
     @DisplayName("GET /api/study/{deckId}/start returns first card")
     void startSessionReturnsFirstCard() throws Exception {
         CardResponse card = new CardResponse(1L, "What is JVM?", "Java Virtual Machine.", 1);
-        given(studyService.startSession(1L)).willReturn(card);
+        given(studyService.startSession(1L)).willReturn(new StudyStartResponse(card, 12));
 
         mockMvc.perform(get("/api/study/1/start"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.frontText").value("What is JVM?"))
-                .andExpect(jsonPath("$.priority").value(1));
+                .andExpect(jsonPath("$.card.id").value(1))
+                .andExpect(jsonPath("$.card.frontText").value("What is JVM?"))
+                .andExpect(jsonPath("$.card.priority").value(1))
+                .andExpect(jsonPath("$.totalCards").value(12));
     }
 
     @Test
