@@ -80,13 +80,16 @@ export async function deleteCard(deckId, cardId) {
     }
 }
 
-// Builds a fresh study session for the given deck and returns the first card due.
+// Builds a fresh study session for the given deck.
+// Returns { card, totalCards } — the first card due and the total number of
+// cards in the deck, used to initialize the card position display.
 export async function startStudySession(deckId) {
     const response = await fetch(`/api/study/${deckId}/start`);
     if (!response.ok) {
         throw new Error("Unable to start study session.");
     }
-    return response.json();
+    const data = await response.json();
+    return { card: data.card, totalCards: data.totalCards };
 }
 
 // Reschedules the card just viewed and returns the next card due.
