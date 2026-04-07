@@ -11,7 +11,7 @@ Goal
 
     Implement the three data structures required by course requirements and integrate them into the study experience. Replace the sequential card traversal with a priority-based scheduling algorithm driven by a min-heap and a hash map. Add a navigation history stack and a session coverage tracker.
 
-Work Completed (In Progress)
+Work Completed
 
     Four custom data structures have been implemented in the com.flashcards.datastructure package. Each is a from-scratch implementation without using Java's built-in collection equivalents for the core logic.
 
@@ -41,7 +41,7 @@ StudySession
 
     The reschedule method calculates the card's new priority after it has been viewed. Normal view: newPriority = oldPriority + deckSize, placing the card at the back of the queue. Mark for further review: newPriority = oldPriority + (deckSize / 2), placing the card approximately in the middle.
 
-    Methods implemented: nextNode, findCard, reschedule, isEmpty.
+    Methods implemented: nextNode, findCard, reschedule, getDeckSize, isEmpty.
 
 StudySessionManager
 
@@ -51,25 +51,59 @@ StudySessionManager
 
 Study Endpoints
 
-    Two new endpoints were added under /api/study:
+    Two endpoints were added under /api/study:
 
     GET /api/study/{deckId}/start
-    Rebuilds the session for the given deck and returns the first card due.
+    Rebuilds the session for the given deck and returns a StudyStartResponse containing the first card due and the total number of cards in the deck. The total card count is included so the frontend can initialize the session coverage display without a separate request.
 
     POST /api/study/{deckId}/next
-    Accepts the card just viewed (cardId, priority, markForReview), reschedules it, persists the updated priority to the database, and returns the next card due.
+    Accepts the card just viewed (cardId, priority, markForReview), reschedules it, persists the updated priority to the database, and returns the next card due as a CardResponse.
 
-    A new request DTO (NextCardRequest) was added for the next endpoint. An EmptyDeckException was added for the case where a session is started on a deck with no cards.
+    A new request DTO (NextCardRequest) was added for the next endpoint. A new response DTO (StudyStartResponse) wraps the first card and deck size for the start endpoint. An EmptyDeckException was added for the case where a session is started on a deck with no cards.
 
     The priority field is returned in the card response so the frontend can send it back on the next call. This avoids the need to track priority server-side between requests.
 
-Frontend Wiring (In Progress)
+Frontend Data Structures
 
-    The study mode frontend is being updated to replace the sequential card traversal with calls to the new scheduling endpoints. The mark for review checkbox is being added to the card face.
+    Two custom data structures were implemented in JavaScript to support the study session UI. These are concept demonstrations — the primary data structures under evaluation for this course are the backend MinHeap and CardHashMap.
+
+NavigationStack
+
+    A cursor-based browsable history stack. Unlike a pure LIFO stack, it supports navigating backward through previously viewed cards and forward again without losing history. The cursor tracks the current position within the items array; the live edge is the most recently pushed item.
+
+    When the user presses Previous, the cursor moves back one position. When the user presses Next and the cursor is not at the live edge, the cursor moves forward through history without calling the backend. Only when the cursor is at the live edge does Next invoke the scheduler.
+
+    Backing storage uses a native JavaScript array. JavaScript arrays resize automatically with amortized O(1) push — the engine handles buffer doubling internally. In a lower-level language, initial capacity would be set to approximately deckSize * 2 to reduce resize frequency.
+
+    Methods implemented: push, back, forward, current, atLiveEdge, atStart, clear.
+
+CardViewSet
+
+    A hash set with separate chaining that tracks unique card IDs flipped to the answer side during the current session. Used to power the "X of Y cards seen" position display.
+
+    The bucket count is derived from the deck size, rounded up to the nearest power of two. This bounds the load factor at or below 1 at full saturation, and a power-of-two capacity improves key distribution since id % capacity becomes equivalent to a bitmask operation.
+
+    A card is only added to the set when the user flips to the answer side while the cursor is at the live edge. Flips while browsing history are skipped — the card was already counted when it was at the live edge.
+
+    Methods implemented: add, has, count (getter), clear.
+
+Frontend Wiring
+
+    study.js was updated to replace the placeholder historyStack array and stub functions with the two new data structures. Key changes:
+
+    NavigationStack and CardViewSet are imported and instantiated when a deck is selected. CardViewSet is sized at construction time using the totalCards value returned by the session start response.
+
+    showPreviousCard navigates back through history without touching the scheduler. showNextCard checks atLiveEdge — if not at the live edge it calls history.forward() and re-renders; at the live edge it calls the backend as before.
+
+    flipCard tracks the transition from question to answer side at the live edge and adds the card ID to the CardViewSet. The position display updates immediately when a new card is counted.
+
+    The Previous button is now enabled and disabled dynamically based on history.atStart() rather than being permanently disabled.
 
 Test Coverage
 
     Unit tests were written for MinHeap, CardHashMap, and StudySession covering ordering behavior, collision handling, reschedule placement, and mark-for-review positioning. Service and web layer tests cover the study endpoints including the defensive recovery path and edge cases.
+
+    Tests for StudyControllerTest and StudyServiceImplTest were updated to reflect the new StudyStartResponse return type from startSession, including updated stubs and JSON path assertions.
 
     All test files include a classification comment distinguishing unit tests, service unit tests, and web layer tests.
 
@@ -78,6 +112,8 @@ Challenges
     One non-obvious design decision was where to return the card priority in the API response. The priority must travel with the card so the frontend can send it back on the next request for rescheduling. Returning it from the heap node rather than the entity ensures the frontend always has the current in-memory value, which may differ from the database value if a priority update has not yet flushed.
 
     Another decision was whether to maintain a stateful session (Option B) or rebuild per request (Option A). Option A is simpler but generates excessive database reads during a session. Option B was chosen as the more realistic approach, with session rebuilding on each study mode entry to handle stale state.
+
+    The deck size needed to reach the frontend to initialize the CardViewSet bucket count and populate the session coverage display. Rather than a separate endpoint, totalCards was added to the session start response so both the first card and the deck size arrive in a single round trip.
 
 Decisions Made
 
@@ -89,12 +125,6 @@ Decisions Made
 
     Card priorities are persisted to the database after each card view so scheduling state carries over between sessions.
 
-Next Steps
+    CardViewSet bucket count is rounded to the next power of two above the deck size. This guarantees load factor at or below 1 and improves hash distribution compared to an arbitrary bucket count.
 
-    Remaining sprint 3 work includes:
-
-    A frontend navigation stack to support reviewing previously seen cards without affecting the scheduler. Going back moves through the history stack; pressing next from the live edge resumes scheduling.
-
-    A frontend HashSet to track unique card IDs viewed this session, replacing the current sequential card counter with an accurate session coverage display.
-
-    Frontend integration of the mark for review checkbox with the scheduling logic.
+    NavigationStack uses a native JavaScript array rather than a manually resized structure. JavaScript's engine handles dynamic array growth with amortized O(1) push, so implementing explicit doubling in JS would add complexity without meaningful performance benefit at this scale.
