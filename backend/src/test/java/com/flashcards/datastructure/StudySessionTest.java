@@ -75,6 +75,8 @@ class StudySessionTest {
 
         assertNotNull(found);
         assertEquals("What is JRE?", found.getFrontText());
+        assertEquals("back", found.getBackText());
+        assertEquals(2, found.getPriority());
     }
 
     @Test

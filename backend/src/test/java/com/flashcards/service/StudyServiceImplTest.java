@@ -26,7 +26,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
+import org.mockito.ArgumentCaptor;
 
 // Service Unit Test — tests StudyServiceImpl logic with all dependencies mocked via Mockito.
 // No Spring context is loaded; only the service class itself is exercised.
@@ -170,6 +172,55 @@ class StudyServiceImplTest {
         given(cardRepository.findByDeckId(1L)).willReturn(List.of());
 
         assertThrows(EmptyDeckException.class, () -> studyService.nextCard(1L, request));
+    }
+
+    @Test
+    @DisplayName("nextCard persists updated priority for the rescheduled card")
+    void nextCardPersistsUpdatedPriority() throws Exception {
+        Card viewed = makeCard(1L, "What is JVM?", "Java Virtual Machine.", 1);
+        Card next = makeCard(2L, "What is JRE?", "Java Runtime Environment.", 2);
+
+        StudySession session = mock(StudySession.class);
+        MinHeap.HeapNode nextNode = new MinHeap.HeapNode(2, 2L);
+
+        NextCardRequest request = new NextCardRequest();
+        request.setCardId(1L);
+        request.setPriority(1);
+        request.setMarkForReview(false);
+
+        given(sessionManager.getSession(1L)).willReturn(session);
+        given(session.reschedule(1L, 1, false)).willReturn(13);
+        given(cardRepository.findById(1L)).willReturn(Optional.of(viewed));
+        given(cardRepository.save(viewed)).willReturn(viewed);
+        given(session.nextNode()).willReturn(nextNode);
+        given(session.findCard(2L)).willReturn(next);
+
+        studyService.nextCard(1L, request);
+
+        ArgumentCaptor<Card> captor = ArgumentCaptor.forClass(Card.class);
+        then(cardRepository).should().save(captor.capture());
+        assertEquals(13, captor.getValue().getPriority());
+    }
+
+    @Test
+    @DisplayName("nextCard throws IllegalStateException when card is missing from session map")
+    void nextCardThrowsWhenCardMissingFromSessionMap() {
+        StudySession session = mock(StudySession.class);
+        MinHeap.HeapNode node = new MinHeap.HeapNode(1, 99L);
+
+        NextCardRequest request = new NextCardRequest();
+        request.setCardId(1L);
+        request.setPriority(1);
+        request.setMarkForReview(false);
+
+        given(sessionManager.getSession(1L)).willReturn(session);
+        given(session.reschedule(1L, 1, false)).willReturn(31);
+        given(cardRepository.findById(1L)).willReturn(Optional.of(mock(Card.class)));
+        given(cardRepository.save(any())).willReturn(mock(Card.class));
+        given(session.nextNode()).willReturn(node);
+        given(session.findCard(99L)).willReturn(null);
+
+        assertThrows(IllegalStateException.class, () -> studyService.nextCard(1L, request));
     }
 
     private Card makeCard(Long id, String frontText, String backText, int priority) throws Exception {

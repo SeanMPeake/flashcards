@@ -39,6 +39,9 @@ public class Card {
     }
 
     public Card(Deck deck, String frontText, String backText, Integer priority) {
+        if (deck == null) throw new IllegalArgumentException("deck must not be null");
+        if (frontText == null) throw new IllegalArgumentException("frontText must not be null");
+        if (backText == null) throw new IllegalArgumentException("backText must not be null");
         this.deck = deck;
         this.frontText = frontText;
         this.backText = backText;

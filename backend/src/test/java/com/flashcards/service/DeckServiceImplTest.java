@@ -52,8 +52,10 @@ class DeckServiceImplTest {
 
         assertEquals(2, result.size());
         assertEquals("Java Basics", result.get(0).getName());
+        assertEquals("Core Java review cards", result.get(0).getDescription());
         assertEquals(2, result.get(0).getCardCount());
         assertEquals("SQL Basics", result.get(1).getName());
+        assertEquals("Intro database review", result.get(1).getDescription());
         assertEquals(0, result.get(1).getCardCount());
     }
 
