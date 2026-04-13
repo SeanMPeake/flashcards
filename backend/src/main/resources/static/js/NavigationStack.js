@@ -25,6 +25,7 @@ export class NavigationStack {
     // Should only be called when atLiveEdge() is true — navigating forward
     // through existing history uses forward() instead.
     push(item) {
+        if (item == null) throw new Error("Cannot push null or undefined onto the navigation stack");
         this.#items.push(item);
         this.#cursor = this.#items.length - 1;
     }

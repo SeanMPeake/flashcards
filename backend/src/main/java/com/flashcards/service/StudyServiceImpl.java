@@ -5,6 +5,7 @@ import com.flashcards.datastructure.StudySession;
 import com.flashcards.dto.request.NextCardRequest;
 import com.flashcards.dto.response.CardResponse;
 import com.flashcards.dto.response.StudyStartResponse;
+import com.flashcards.exception.CardNotFoundException;
 import com.flashcards.exception.DeckNotFoundException;
 import com.flashcards.exception.EmptyDeckException;
 import com.flashcards.model.Card;
@@ -77,7 +78,7 @@ public class StudyServiceImpl implements StudyService {
                 request.getCardId(), request.getPriority(), request.isMarkForReview());
 
         Card viewed = cardRepository.findById(request.getCardId())
-                .orElseThrow(() -> new RuntimeException("Card not found: " + request.getCardId()));
+                .orElseThrow(() -> new CardNotFoundException(request.getCardId()));
         viewed.setPriority(newPriority);
         cardRepository.save(viewed);
 
@@ -90,6 +91,7 @@ public class StudyServiceImpl implements StudyService {
     private CardResponse buildResponse(StudySession session) {
         MinHeap.HeapNode node = session.nextNode();
         Card card = session.findCard(node.cardId);
+        if (card == null) throw new IllegalStateException("Card not found in session map for id: " + node.cardId);
         return new CardResponse(card.getId(), card.getFrontText(), card.getBackText(), node.priority);
     }
 }

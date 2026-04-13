@@ -39,42 +39,32 @@ public class CardServiceImpl implements CardService {
     @Transactional
     @Override
     public CardResponse updateCard(Long deckId, Long cardId, UpdateCardRequest request) {
-        if (!deckRepository.existsById(deckId)) {
-            throw new DeckNotFoundException(deckId);
-        }
-
-        Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new CardNotFoundException(cardId));
-
-        // Card exists but belongs to a different deck — treat as not found
-        // since the client requested it in the context of the wrong deck.
-        if (!card.getDeck().getId().equals(deckId)) {
-            throw new CardNotFoundException(cardId);
-        }
-
+        Card card = requireCardInDeck(deckId, cardId);
         card.setFrontText(request.getFrontText());
         card.setBackText(request.getBackText());
-
         return toResponse(cardRepository.save(card));
     }
 
     @Transactional
     @Override
     public void deleteCard(Long deckId, Long cardId) {
+        requireCardInDeck(deckId, cardId);
+        cardRepository.deleteById(cardId);
+    }
+
+    // Validates that the deck exists, the card exists, and the card belongs to that deck.
+    // Cards that exist under a different deck are treated as not found — the client
+    // requested the card in the context of the wrong deck.
+    private Card requireCardInDeck(Long deckId, Long cardId) {
         if (!deckRepository.existsById(deckId)) {
             throw new DeckNotFoundException(deckId);
         }
-
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException(cardId));
-
-        // Card exists but belongs to a different deck — treat as not found
-        // since the client requested it in the context of the wrong deck.
         if (!card.getDeck().getId().equals(deckId)) {
             throw new CardNotFoundException(cardId);
         }
-
-        cardRepository.deleteById(cardId);
+        return card;
     }
 
     private CardResponse toResponse(Card card) {

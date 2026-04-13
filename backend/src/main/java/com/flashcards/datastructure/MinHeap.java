@@ -1,6 +1,7 @@
 package com.flashcards.datastructure;
 
 import com.flashcards.model.Card;
+import java.util.Arrays;
 import java.util.List;
 
 public class MinHeap {
@@ -22,6 +23,7 @@ public class MinHeap {
 
     // Builds the heap from a list of cards using the O(n) buildHeap method.
     public MinHeap(List<Card> cards) {
+        if (cards == null) throw new IllegalArgumentException("Cards list must not be null");
         size = cards.size();
         array = new HeapNode[size + 1];
         array[0] = new HeapNode(Integer.MIN_VALUE, null); // sentinel — stops percolate-up naturally at index 0
@@ -35,6 +37,8 @@ public class MinHeap {
 
     // Establishes the heap property in O(n) time by percolating down from
     // the last non-leaf node. Leaf nodes (past size/2) are already valid.
+    // This is Floyd's algorithm — more efficient than inserting one element
+    // at a time, which would cost O(n log n) due to repeated percolate-up calls.
     private void buildHeap() {
         for (int i = size / 2; i >= 1; i--) {
             percolateDown(i);
@@ -44,6 +48,10 @@ public class MinHeap {
     // Adds a card to the heap. Uses the hole method: shift parents down
     // without swapping until the correct position is found, then insert.
     public void insert(int priority, Long cardId) {
+        if (cardId == null) throw new IllegalArgumentException("cardId must not be null");
+        if (size >= array.length - 1) {
+            array = Arrays.copyOf(array, array.length * 2);
+        }
         size++;
         int hole = size;
         while (array[hole / 2].priority > priority) {

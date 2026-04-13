@@ -163,6 +163,7 @@ export async function showNextCard() {
     } catch (error) {
         nextButtonEl.disabled = false;
         cardPositionEl.textContent = error.message;
+        setTimeout(() => updatePositionDisplay(), 5000);
     }
 }
 

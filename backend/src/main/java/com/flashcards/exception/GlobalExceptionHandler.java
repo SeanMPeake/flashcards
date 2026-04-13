@@ -1,6 +1,8 @@
 package com.flashcards.exception;
 
 import com.flashcards.dto.response.ErrorResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -17,6 +19,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 // appropriate choice if this API were to be made publicly available.
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(DeckNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleDeckNotFound(DeckNotFoundException ex) {
@@ -53,8 +57,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
-        // Use a generic message for unhandled exceptions to avoid leaking
-        // internal error details or stack trace information to the client.
+        // Log the full exception server-side before returning a generic message
+        // to the client — avoids leaking internal details while keeping the
+        // stack trace available for debugging.
+        logger.error("Unhandled exception", ex);
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "An unexpected error occurred."));

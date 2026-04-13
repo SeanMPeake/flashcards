@@ -74,7 +74,7 @@ class DeckServiceImplTest {
         setId(deck, 1L);
 
         Card card = createCard(10L, deck, "What does SQL stand for?", "Structured Query Language.", 1);
-        deck.setCards(List.of(card));
+        deck.getCards().add(card);
 
         given(deckRepository.findById(1L)).willReturn(Optional.of(deck));
 
@@ -94,7 +94,6 @@ class DeckServiceImplTest {
     @DisplayName("getDeckById returns empty cards when deck has no cards")
     void getDeckByIdReturnsEmptyCardsWhenDeckHasNoCards() throws Exception {
         Deck deck = new Deck("Empty Deck", "No cards yet");
-        deck.setCards(List.of());
         setId(deck, 5L);
 
         given(deckRepository.findById(5L)).willReturn(Optional.of(deck));

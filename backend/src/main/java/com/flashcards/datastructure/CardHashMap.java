@@ -25,6 +25,7 @@ public class CardHashMap {
     // Table size is set to the next prime >= cards.size() * 2 to keep the
     // load factor around 0.5, which reduces the average chain length.
     public CardHashMap(List<Card> cards) {
+        if (cards == null) throw new IllegalArgumentException("Cards list must not be null");
         tableSize = nextPrime(cards.size() * 2);
         buckets = new Node[tableSize];
 
@@ -33,14 +34,19 @@ public class CardHashMap {
         }
     }
 
-    // Multiplying by prime 31 before modding distributes keys more evenly
-    // across buckets, reducing clustering.
+    // Multiplying by the prime 31 before modding distributes keys more evenly
+    // across buckets. Prime multipliers reduce the chance that similar input
+    // values collide at the same index — a composite multiplier would cause
+    // certain key patterns to cluster. 31 is the same constant used by
+    // Java's own String.hashCode().
     private int hash(Long cardId) {
         return (int)(Math.abs(cardId * 31L) % tableSize);
     }
 
     // Inserts a card at the head of the chain at its hashed bucket.
     public void insert(Long cardId, Card card) {
+        if (cardId == null) throw new IllegalArgumentException("cardId must not be null");
+        if (card == null) throw new IllegalArgumentException("card must not be null");
         int index = hash(cardId);
         Node newNode = new Node(cardId, card);
         newNode.next = buckets[index];
@@ -50,6 +56,7 @@ public class CardHashMap {
     // Returns the card for the given ID, or null if not found.
     // Walks the chain at the hashed bucket to find the matching entry.
     public Card search(Long cardId) {
+        if (cardId == null) throw new IllegalArgumentException("cardId must not be null");
         int index = hash(cardId);
         Node current = buckets[index];
         while (current != null) {

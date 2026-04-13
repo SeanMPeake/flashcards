@@ -19,6 +19,7 @@ export class CardViewSet {
     #count = 0;
 
     constructor(deckSize) {
+        if (deckSize <= 0) throw new Error("CardViewSet requires a deck size greater than zero");
         this.#capacity = CardViewSet.#nextPowerOfTwo(deckSize);
         this.#buckets = Array.from({ length: this.#capacity }, () => []);
     }
@@ -37,6 +38,7 @@ export class CardViewSet {
 
     // Adds a card ID to the set. No-ops if already present.
     add(id) {
+        if (id == null) throw new Error("id must not be null or undefined");
         if (this.has(id)) return;
         this.#buckets[this.#hash(id)].push(id);
         this.#count++;
@@ -44,6 +46,7 @@ export class CardViewSet {
 
     // Returns true if the card ID is in the set.
     has(id) {
+        if (id == null) throw new Error("id must not be null or undefined");
         return this.#buckets[this.#hash(id)].includes(id);
     }
 
