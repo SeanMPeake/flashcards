@@ -223,7 +223,7 @@ h2 {
 
 .flashcard:hover,
 .flashcard:focus-visible {
-    transform: translateY(-2px) rotate(-0.3deg);
+    transform: translateY(-2px);
     box-shadow: 0 22px 44px rgba(74, 47, 24, 0.18);
     outline: none;
 }
