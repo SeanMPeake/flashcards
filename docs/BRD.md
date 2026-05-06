@@ -1,7 +1,7 @@
 # Business Requirements Document (BRD)
 
 **Project Name:** Flashcard Study Application  
-**Version:** 0.1  
+**Version:** 1.0  
 **Date:** Spring 2026  
 
 ---
@@ -47,8 +47,9 @@ The system will include:
 - Flashcard creation within decks  
 - Viewing and listing decks  
 - Persistent data storage  
-- Study session functionality (sequential card viewing)  
-- Efficient internal data handling to support scalability  
+- Priority-based study session scheduling using a min-heap algorithm  
+- Card edit mode supporting create, update, and delete operations  
+- Cloud deployment with a publicly accessible URL  
 
 ### 4.2 Out of Scope
 
@@ -68,8 +69,9 @@ FR-01: The system shall allow a user to create a new deck.
 FR-02: The system shall allow a user to view a list of existing decks.  
 FR-03: The system shall allow a user to add flashcards to a deck.  
 FR-04: The system shall persist decks and cards in a database.  
-FR-05: The system shall allow a user to view cards in study mode.  
-FR-06: The system shall support efficient retrieval and management of flashcards as data volume increases.  
+FR-05: The system shall present cards during study sessions in priority order determined by a min-heap scheduling algorithm, and shall allow a user to mark a card for earlier re-review.  
+FR-06: The system shall allow a user to create, update, and delete cards within a deck through an edit mode interface.  
+FR-07: The system shall be deployable to a cloud hosting environment and accessible via a public URL.  
 
 ---
 
@@ -87,7 +89,8 @@ NFR-05: The codebase shall maintain reasonable modular complexity and readabilit
 
 The project will be considered successful if:
 
-- Users can create decks and add cards successfully.  
-- Data persists reliably in storage.  
-- The system performs consistently as data size grows.  
-- The application demonstrates structured, maintainable implementation.  
+- Users can create, edit, and delete decks and cards successfully.  
+- Data persists reliably across sessions.  
+- Study sessions present cards in scheduler-determined order and respond correctly to mark-for-review input.  
+- The application is deployed and accessible via a public URL.  
+- The codebase demonstrates structured, maintainable implementation across all four sprints.  
