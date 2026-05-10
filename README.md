@@ -52,7 +52,6 @@ From the `backend` directory:
 
 ## Project Structure
 
-```
 flashcards/
 ├── backend/                  Spring Boot application
 │   └── src/
@@ -63,7 +62,6 @@ flashcards/
 │       └── test/             JUnit and MockMvc tests
 ├── docs/                     BRD, sprint notes, project log
 └── .github/workflows/        CI/CD pipeline
-```
 
 ## Documentation
 
