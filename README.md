@@ -35,23 +35,28 @@ spring.jpa.show-sql=true
 
 Create the database (first time only):
 
-```bash
-createdb -U postgres flashcards
-```
-
+Powershell:
 ```powershell
 psql -U postgres -c "CREATE DATABASE flashcards;"
 ```
 
+Bash:
+```bash
+createdb -U postgres flashcards
+```
+
 Then from the `backend` directory:
 
+Powershell:
 ```powershell
 $env:SPRING_PROFILES_ACTIVE="local"
 ./mvnw spring-boot:run
 ```
 
+Bash:
 ```bash
 SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run
+```
 
 Open [http://localhost:8080](http://localhost:8080).
 
@@ -65,6 +70,7 @@ From the `backend` directory:
 
 ## Project Structure
 
+```
 flashcards/
 ├── backend/                  Spring Boot application
 │   └── src/
@@ -75,6 +81,7 @@ flashcards/
 │       └── test/             JUnit and MockMvc tests
 ├── docs/                     BRD, sprint notes, project log
 └── .github/workflows/        CI/CD pipeline
+```
 
 ## Documentation
 
