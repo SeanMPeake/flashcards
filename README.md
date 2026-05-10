@@ -33,12 +33,25 @@ spring.datasource.password=your_password
 spring.jpa.show-sql=true
 ```
 
+Create the database (first time only):
+
+```bash
+createdb -U postgres flashcards
+```
+
+```powershell
+psql -U postgres -c "CREATE DATABASE flashcards;"
+```
+
 Then from the `backend` directory:
 
 ```powershell
 $env:SPRING_PROFILES_ACTIVE="local"
 ./mvnw spring-boot:run
 ```
+
+```bash
+SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run
 
 Open [http://localhost:8080](http://localhost:8080).
 
