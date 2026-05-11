@@ -33,6 +33,7 @@ public class CardServiceImpl implements CardService {
         // a unique starting value and placing it at the back of the scheduling queue.
         int priority = cardRepository.countByDeckId(deckId) + 1;
         Card card = new Card(deck, request.getFrontText(), request.getBackText(), priority);
+
         return toResponse(cardRepository.save(card));
     }
 
@@ -42,6 +43,7 @@ public class CardServiceImpl implements CardService {
         Card card = requireCardInDeck(deckId, cardId);
         card.setFrontText(request.getFrontText());
         card.setBackText(request.getBackText());
+        
         return toResponse(cardRepository.save(card));
     }
 

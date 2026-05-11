@@ -31,6 +31,7 @@ public class StudyController {
     public ResponseEntity<CardResponse> nextCard(
             @PathVariable Long deckId,
             @Valid @RequestBody NextCardRequest request) {
+                
         return ResponseEntity.ok(studyService.nextCard(deckId, request));
     }
 }

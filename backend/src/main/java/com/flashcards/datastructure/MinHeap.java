@@ -23,7 +23,10 @@ public class MinHeap {
 
     // Builds the heap from a list of cards using the O(n) buildHeap method.
     public MinHeap(List<Card> cards) {
-        if (cards == null) throw new IllegalArgumentException("Cards list must not be null");
+        if (cards == null) {
+            throw new IllegalArgumentException("Cards list must not be null");
+        }
+
         size = cards.size();
         array = new HeapNode[size + 1];
         array[0] = new HeapNode(Integer.MIN_VALUE, null); // sentinel — stops percolate-up naturally at index 0
@@ -48,26 +51,35 @@ public class MinHeap {
     // Adds a card to the heap. Uses the hole method: shift parents down
     // without swapping until the correct position is found, then insert.
     public void insert(int priority, Long cardId) {
-        if (cardId == null) throw new IllegalArgumentException("cardId must not be null");
+        if (cardId == null) {
+            throw new IllegalArgumentException("cardId must not be null");
+        }
         if (size >= array.length - 1) {
             array = Arrays.copyOf(array, array.length * 2);
         }
+
         size++;
         int hole = size;
+
         while (array[hole / 2].priority > priority) {
             array[hole] = array[hole / 2];
             hole = hole / 2;
         }
+
         array[hole] = new HeapNode(priority, cardId);
     }
 
     // Removes and returns the node with the lowest priority (next card due).
     public HeapNode deleteMin() {
-        if (isEmpty()) throw new IllegalStateException("Heap is empty");
+        if (isEmpty()) {
+            throw new IllegalStateException("Heap is empty");
+        }
+
         HeapNode min = array[1];
         array[1] = array[size];
         size--;
         percolateDown(1);
+        
         return min;
     }
 

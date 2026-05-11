@@ -24,6 +24,7 @@ public class StudySessionManager {
     public StudySession createSession(Long deckId, List<Card> cards) {
         StudySession session = new StudySession(cards);
         sessions.put(deckId, session);
+        
         return session;
     }
 

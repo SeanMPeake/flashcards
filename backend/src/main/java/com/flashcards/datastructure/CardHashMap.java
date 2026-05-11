@@ -25,7 +25,10 @@ public class CardHashMap {
     // Table size is set to the next prime >= cards.size() * 2 to keep the
     // load factor around 0.5, which reduces the average chain length.
     public CardHashMap(List<Card> cards) {
-        if (cards == null) throw new IllegalArgumentException("Cards list must not be null");
+        if (cards == null) {
+            throw new IllegalArgumentException("Cards list must not be null");
+        }
+
         tableSize = nextPrime(cards.size() * 2);
         buckets = new Node[tableSize];
 
@@ -45,8 +48,13 @@ public class CardHashMap {
 
     // Inserts a card at the head of the chain at its hashed bucket.
     public void insert(Long cardId, Card card) {
-        if (cardId == null) throw new IllegalArgumentException("cardId must not be null");
-        if (card == null) throw new IllegalArgumentException("card must not be null");
+        if (cardId == null) {
+            throw new IllegalArgumentException("cardId must not be null");
+        }
+        if (card == null) {
+            throw new IllegalArgumentException("card must not be null");
+        }
+
         int index = hash(cardId);
         Node newNode = new Node(cardId, card);
         newNode.next = buckets[index];
@@ -56,15 +64,20 @@ public class CardHashMap {
     // Returns the card for the given ID, or null if not found.
     // Walks the chain at the hashed bucket to find the matching entry.
     public Card search(Long cardId) {
-        if (cardId == null) throw new IllegalArgumentException("cardId must not be null");
+        if (cardId == null) {
+            throw new IllegalArgumentException("cardId must not be null");
+        }
+
         int index = hash(cardId);
         Node current = buckets[index];
+
         while (current != null) {
             if (current.cardId.equals(cardId)) {
                 return current.card;
             }
             current = current.next;
         }
+
         return null;
     }
 
@@ -73,19 +86,27 @@ public class CardHashMap {
     // be added or removed while a study session is active.
 
     private int nextPrime(int n) {
-        if (n <= 2) return 2;
+        if (n <= 2) {
+            return 2;
+        }
+
         int candidate = n % 2 == 0 ? n + 1 : n;
         while (!isPrime(candidate)) {
             candidate += 2;
         }
+
         return candidate;
     }
 
     private boolean isPrime(int n) {
-        if (n < 2) return false;
+        if (n < 2) {
+            return false;
+        }
+
         for (int i = 2; i * i <= n; i++) {
             if (n % i == 0) return false;
         }
+        
         return true;
     }
 }

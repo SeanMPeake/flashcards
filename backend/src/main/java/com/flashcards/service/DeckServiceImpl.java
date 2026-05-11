@@ -46,6 +46,7 @@ public class DeckServiceImpl implements DeckService {
     @Override
     public DeckResponse createDeck(CreateDeckRequest request) {
         Deck deck = new Deck(request.getName(), request.getDescription());
+        
         return toResponse(deckRepository.save(deck));
     }
 

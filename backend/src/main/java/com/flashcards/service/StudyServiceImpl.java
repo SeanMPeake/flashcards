@@ -48,6 +48,7 @@ public class StudyServiceImpl implements StudyService {
         }
 
         StudySession session = sessionManager.createSession(deckId, cards);
+
         return new StudyStartResponse(buildResponse(session), session.getDeckSize());
     }
 
@@ -66,10 +67,13 @@ public class StudyServiceImpl implements StudyService {
             if (!deckRepository.existsById(deckId)) {
                 throw new DeckNotFoundException(deckId);
             }
+
             List<Card> cards = cardRepository.findByDeckId(deckId);
+
             if (cards.isEmpty()) {
                 throw new EmptyDeckException(deckId);
             }
+
             session = sessionManager.createSession(deckId, cards);
         }
 
@@ -91,7 +95,11 @@ public class StudyServiceImpl implements StudyService {
     private CardResponse buildResponse(StudySession session) {
         MinHeap.HeapNode node = session.nextNode();
         Card card = session.findCard(node.cardId);
-        if (card == null) throw new IllegalStateException("Card not found in session map for id: " + node.cardId);
+
+        if (card == null) {
+            throw new IllegalStateException("Card not found in session map for id: " + node.cardId);
+        }
+        
         return new CardResponse(card.getId(), card.getFrontText(), card.getBackText(), node.priority);
     }
 }

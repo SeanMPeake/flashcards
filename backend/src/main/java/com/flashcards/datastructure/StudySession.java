@@ -14,7 +14,10 @@ public class StudySession {
     private final int deckSize;
 
     public StudySession(List<Card> cards) {
-        if (cards == null) throw new IllegalArgumentException("Cards list must not be null");
+        if (cards == null) {
+            throw new IllegalArgumentException("Cards list must not be null");
+        }
+
         this.heap = new MinHeap(cards);
         this.cardMap = new CardHashMap(cards);
         this.deckSize = cards.size();
@@ -28,7 +31,9 @@ public class StudySession {
 
     // Looks up full card data by ID using the hash map.
     public Card findCard(Long cardId) {
-        if (cardId == null) throw new IllegalArgumentException("cardId must not be null");
+        if (cardId == null) {
+            throw new IllegalArgumentException("cardId must not be null");
+        }
         return cardMap.search(cardId);
     }
 
@@ -37,10 +42,22 @@ public class StudySession {
     // (oldPriority + deckSize / 2) rather than the back (oldPriority + deckSize).
     // Returns the new priority so the service can persist it to the database.
     public int reschedule(Long cardId, int oldPriority, boolean markForReview) {
-        if (cardId == null) throw new IllegalArgumentException("cardId must not be null");
-        if (oldPriority < 0) throw new IllegalArgumentException("oldPriority must not be negative");
-        int newPriority = markForReview ? oldPriority + (deckSize / 2) : oldPriority + deckSize;
+        if (cardId == null) {
+            throw new IllegalArgumentException("cardId must not be null");
+        }
+
+        if (oldPriority < 0) {
+            throw new IllegalArgumentException("oldPriority must not be negative");
+        }
+
+        int newPriority;
+        if (markForReview) {
+            newPriority = oldPriority + (deckSize / 2);
+        } else {
+            newPriority = oldPriority + deckSize;
+        }
         heap.insert(newPriority, cardId);
+
         return newPriority;
     }
 

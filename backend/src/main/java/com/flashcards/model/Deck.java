@@ -37,7 +37,9 @@ public class Deck {
     }
 
     public Deck(String name, String description) {
-        if (name == null) throw new IllegalArgumentException("name must not be null");
+        if (name == null) {
+            throw new IllegalArgumentException("name must not be null");
+        }
         this.name = name;
         this.description = description;
     }
