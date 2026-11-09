@@ -19,46 +19,23 @@ A web-based study tool for organizing flashcards into decks and reviewing them t
 - **Build:** Maven Wrapper
 - **Testing:** JUnit 5, Mockito, Spring Boot Test
 - **CI/CD:** GitHub Actions, Railway
+- **Local environment:** Docker Compose, nginx (gateway)
 
 ## Running Locally
 
-**Prerequisites:** Java 21+, Maven, PostgreSQL running locally with a database named `flashcards`
+**Prerequisites:** Docker Desktop (running)
 
-Create `backend/src/main/resources/application-local.properties` (this file is gitignored):
+From the repository root:
 
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/flashcards
-spring.datasource.username=postgres
-spring.datasource.password=your_password
-spring.jpa.show-sql=true
 ```
-
-Create the database (first time only):
-
-Powershell:
-```powershell
-psql -U postgres -c "CREATE DATABASE flashcards;"
-```
-
-Bash:
-```bash
-createdb -U postgres flashcards
-```
-
-Then from the `backend` directory:
-
-Powershell:
-```powershell
-$env:SPRING_PROFILES_ACTIVE="local"
-./mvnw spring-boot:run
-```
-
-Bash:
-```bash
-SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run
+docker compose up --build
 ```
 
 Open [http://localhost:8080](http://localhost:8080).
+
+This starts three containers: PostgreSQL, the backend, and an nginx gateway. The gateway serves the frontend and forwards `/api/` requests to the backend; it is the only port exposed. The database starts empty and is seeded with sample decks on first run.
+
+To stop: `Ctrl+C`, or `docker compose down`. To also wipe the database: `docker compose down -v`.
 
 ## Running Tests
 
@@ -72,13 +49,14 @@ From the `backend` directory:
 
 ```
 flashcards/
+├── frontend/                 HTML, CSS, JS modules (served by the gateway)
+├── gateway/                  nginx config: serves frontend, routes /api/ to services
 ├── backend/                  Spring Boot application
+│   ├── Dockerfile
 │   └── src/
-│       ├── main/
-│       │   ├── java/         Controllers, services, models, custom data structures
-│       │   └── resources/
-│       │       └── static/   Frontend (HTML, CSS, JS modules)
+│       ├── main/java/        Controllers, services, models, custom data structures
 │       └── test/             JUnit and MockMvc tests
+├── docker-compose.yml        Local environment: postgres, backend, gateway
 └── .github/workflows/        CI/CD pipeline
 ```
 
