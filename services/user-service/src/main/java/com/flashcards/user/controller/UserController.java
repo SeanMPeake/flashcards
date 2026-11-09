@@ -1,6 +1,8 @@
 package com.flashcards.user.controller;
 
+import com.flashcards.user.dto.request.LoginRequest;
 import com.flashcards.user.dto.request.SignupRequest;
+import com.flashcards.user.dto.response.LoginResponse;
 import com.flashcards.user.dto.response.UserResponse;
 import com.flashcards.user.service.UserService;
 import jakarta.validation.Valid;
@@ -26,5 +28,10 @@ public class UserController {
     @PostMapping("/signup")
     public ResponseEntity<UserResponse> signup(@Valid @RequestBody SignupRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.signup(request));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(userService.login(request));
     }
 }

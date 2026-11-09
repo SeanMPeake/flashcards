@@ -31,6 +31,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flashcards?currentSchema=users
       SPRING_DATASOURCE_USERNAME: user_svc
       SPRING_DATASOURCE_PASSWORD: user_svc
+      JWT_SECRET: local-dev-only-jwt-secret-change-in-production   # 46 bytes; local only
     depends_on:
       postgres:
         condition: service_healthy

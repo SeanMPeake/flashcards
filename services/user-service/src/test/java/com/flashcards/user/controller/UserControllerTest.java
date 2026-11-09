@@ -1,6 +1,8 @@
 package com.flashcards.user.controller;
 
+import com.flashcards.user.dto.response.LoginResponse;
 import com.flashcards.user.dto.response.UserResponse;
+import com.flashcards.user.exception.InvalidCredentialsException;
 import com.flashcards.user.exception.UsernameTakenException;
 import com.flashcards.user.service.UserService;
 import org.junit.jupiter.api.DisplayName;
@@ -147,6 +149,45 @@ class UserControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message")
                         .value("password must include a letter, a digit, and a symbol, with no spaces"));
+    }
+
+    @Test
+    @DisplayName("POST /api/users/login returns 200 with a token and the user")
+    void loginReturnsToken() throws Exception {
+        given(userService.login(any())).willReturn(
+                new LoginResponse("header.payload.signature", "Bearer", 86400, new UserResponse(1L, "SeanPeake")));
+
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("SeanPeake", VALID_PASSWORD)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("header.payload.signature"))
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.expiresIn").value(86400))
+                .andExpect(jsonPath("$.user.username").value("SeanPeake"));
+    }
+
+    @Test
+    @DisplayName("Login returns 401 with one message for any bad credentials")
+    void loginReturnsUnauthorized() throws Exception {
+        given(userService.login(any())).willThrow(new InvalidCredentialsException());
+
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("SeanPeake", "Wrong_pass9")))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid username or password"));
+    }
+
+    @Test
+    @DisplayName("Login returns 400 when the password is blank")
+    void loginRejectsBlankPassword() throws Exception {
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("SeanPeake", "")))
+                .andExpect(status().isBadRequest());
+
+        then(userService).should(never()).login(any());
     }
 
     @Test

@@ -1,6 +1,9 @@
 package com.flashcards.user.service;
 
+import com.flashcards.user.dto.request.LoginRequest;
 import com.flashcards.user.dto.request.SignupRequest;
+import com.flashcards.user.dto.response.LoginResponse;
+import com.flashcards.user.exception.InvalidCredentialsException;
 import com.flashcards.user.exception.UsernameTakenException;
 import com.flashcards.user.model.User;
 import com.flashcards.user.repository.UserRepository;
@@ -11,27 +14,39 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 
-// Unit test — the repository is mocked; a real BCrypt encoder is used so the
-// test proves the stored value is a genuine hash of the password.
+// Unit test — the repository is mocked; a real BCrypt encoder and a real JwtService
+// are used, so the tests prove genuine hashing and genuine tokens.
 class UserServiceImplTest {
+
+    private static final String TEST_SECRET = "test-only-secret-at-least-32-bytes-long!";
 
     private UserRepository userRepository;
     private PasswordEncoder passwordEncoder;
+    private JwtService jwtService;
     private UserServiceImpl userService;
 
     @BeforeEach
     void setUp() {
         userRepository = mock(UserRepository.class);
-        passwordEncoder = new BCryptPasswordEncoder();
-        userService = new UserServiceImpl(userRepository, passwordEncoder);
+        // spy = the real encoder, but Mockito can also check how it was called.
+        passwordEncoder = spy(new BCryptPasswordEncoder());
+        jwtService = new JwtService(TEST_SECRET, 24);
+        userService = new UserServiceImpl(userRepository, passwordEncoder, jwtService);
         // saveAndFlush returns whatever it was given.
         given(userRepository.saveAndFlush(any(User.class))).willAnswer(inv -> inv.getArgument(0));
     }
@@ -41,6 +56,15 @@ class UserServiceImplTest {
         then(userRepository).should().saveAndFlush(captor.capture());
         return captor.getValue();
     }
+
+    // A stored user with id 1, as the database would return it.
+    private User storedUser(String username, String rawPassword) {
+        User user = new User(username, username.toLowerCase(), new BCryptPasswordEncoder().encode(rawPassword));
+        ReflectionTestUtils.setField(user, "id", 1L);
+        return user;
+    }
+
+    // ----- signup -----
 
     @Test
     @DisplayName("Signup stores a BCrypt hash, never the raw password")
@@ -82,5 +106,58 @@ class UserServiceImplTest {
 
         assertThrows(UsernameTakenException.class,
                 () -> userService.signup(new SignupRequest("SeanPeake", "Secret_pass1")));
+    }
+
+    // ----- login -----
+
+    @Test
+    @DisplayName("Login with the right password returns a token for that user")
+    void loginReturnsTokenForUser() {
+        given(userRepository.findByUsernameNormalized("seanpeake"))
+                .willReturn(Optional.of(storedUser("SeanPeake", "Secret_pass1")));
+
+        LoginResponse response = userService.login(new LoginRequest("SeanPeake", "Secret_pass1"));
+
+        assertEquals("Bearer", response.getTokenType());
+        assertEquals(24 * 60 * 60, response.getExpiresIn());
+        assertEquals(1L, response.getUser().getId());
+        assertEquals("SeanPeake", response.getUser().getUsername());
+        // The token is genuine: it verifies with the secret and names user 1.
+        assertEquals("1", JwtServiceTest.parse(response.getToken(), TEST_SECRET).getSubject());
+    }
+
+    @Test
+    @DisplayName("Login matches the username regardless of letter case")
+    void loginIgnoresUsernameCase() {
+        given(userRepository.findByUsernameNormalized("seanpeake"))
+                .willReturn(Optional.of(storedUser("SeanPeake", "Secret_pass1")));
+
+        LoginResponse response = userService.login(new LoginRequest("SEANpeake", "Secret_pass1"));
+
+        assertEquals("SeanPeake", response.getUser().getUsername());
+    }
+
+    @Test
+    @DisplayName("Login rejects a wrong password")
+    void loginRejectsWrongPassword() {
+        given(userRepository.findByUsernameNormalized("seanpeake"))
+                .willReturn(Optional.of(storedUser("SeanPeake", "Secret_pass1")));
+
+        assertThrows(InvalidCredentialsException.class,
+                () -> userService.login(new LoginRequest("SeanPeake", "Wrong_pass9")));
+    }
+
+    @Test
+    @DisplayName("Login rejects an unknown username but still runs a password check")
+    void loginRejectsUnknownUserWithTimingSafeguard() {
+        given(userRepository.findByUsernameNormalized("nobodyhere")).willReturn(Optional.empty());
+        // Ignore the encode() call made at startup for the dummy hash.
+        clearInvocations(passwordEncoder);
+
+        assertThrows(InvalidCredentialsException.class,
+                () -> userService.login(new LoginRequest("NobodyHere", "Secret_pass1")));
+
+        // The timing safeguard: a BCrypt check runs even though no user was found.
+        then(passwordEncoder).should().matches(eq("Secret_pass1"), anyString());
     }
 }
