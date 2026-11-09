@@ -7,6 +7,7 @@ services:
       POSTGRES_PASSWORD: flashcards   # local development only
     volumes:
       - pgdata:/var/lib/postgresql/data   # keeps data between restarts
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro   # schemas and logins, first run only
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U flashcards -d flashcards"]
       interval: 5s
@@ -23,6 +24,17 @@ services:
       postgres:
         condition: service_healthy   # wait until Postgres accepts connections
 
+  user-service:
+    build: ./services/user-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flashcards?currentSchema=users
+      SPRING_DATASOURCE_USERNAME: user_svc
+      SPRING_DATASOURCE_PASSWORD: user_svc
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   gateway:
     image: nginx:1.27
     ports:
@@ -32,6 +44,7 @@ services:
       - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - deck-service
+      - user-service
 
 volumes:
   pgdata:
