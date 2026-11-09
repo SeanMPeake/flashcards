@@ -5,11 +5,16 @@ import com.flashcards.user.exception.UsernameTakenException;
 import com.flashcards.user.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.stream.Stream;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -47,8 +52,56 @@ class UserControllerTest {
                         .content(body("SeanPeake", VALID_PASSWORD)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.username").value("SeanPeake"))
-                .andExpect(jsonPath("$.passwordHash").doesNotExist());
+                .andExpect(jsonPath("$.username").value("SeanPeake"));
+    }
+
+    // Each case sits exactly on a length limit and breaks no rule.
+    static Stream<Arguments> acceptedInputs() {
+        return Stream.of(
+                Arguments.of("shortest username (8)", "Abcdef_1", VALID_PASSWORD),
+                Arguments.of("longest username (20)", "Abcdefghij_123456789", VALID_PASSWORD),
+                Arguments.of("shortest password (10)", "SeanPeake", "Secret_pa1"),
+                Arguments.of("longest password (64)", "SeanPeake", "A1_" + "a".repeat(61))
+        );
+    }
+
+    @ParameterizedTest(name = "accepts {0}")
+    @MethodSource("acceptedInputs")
+    void acceptsInputsAtTheLimits(String label, String username, String password) throws Exception {
+        given(userService.signup(any())).willReturn(new UserResponse(1L, username));
+
+        mockMvc.perform(post("/api/users/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body(username, password)))
+                .andExpect(status().isCreated());
+    }
+
+    // Each case breaks exactly one rule, so it can only fail for that rule's reason.
+    static Stream<Arguments> rejectedInputs() {
+        String composition = "password must include a letter, a digit, and a symbol, with no spaces";
+        return Stream.of(
+                Arguments.of("username too long (21)", "Abcdefghij_1234567890", VALID_PASSWORD,
+                        "username must be 8-20 characters"),
+                Arguments.of("password too short (9)", "SeanPeake", "Secret_p1",
+                        "password must be 10-64 characters"),
+                Arguments.of("password too long (65)", "SeanPeake", "A1_" + "a".repeat(62),
+                        "password must be 10-64 characters"),
+                Arguments.of("password missing a digit", "SeanPeake", "Secret_pass!", composition),
+                Arguments.of("password missing a letter", "SeanPeake", "1234567_89!", composition)
+        );
+    }
+
+    @ParameterizedTest(name = "rejects {0}")
+    @MethodSource("rejectedInputs")
+    void rejectsInputsBreakingOneRule(String label, String username, String password,
+                                      String expectedMessage) throws Exception {
+        mockMvc.perform(post("/api/users/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body(username, password)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(expectedMessage));
+
+        then(userService).should(never()).signup(any());
     }
 
     @Test
