@@ -33,13 +33,13 @@ docker compose up --build
 
 Open [http://localhost:8080](http://localhost:8080).
 
-This starts three containers: PostgreSQL, the deck service, and an nginx gateway. The gateway serves the frontend and forwards `/api/` requests to the deck service; it is the only port exposed. The database starts empty and is seeded with sample decks on first run.
+This starts four containers: PostgreSQL, the deck service, the user service, and an nginx gateway. The gateway serves the frontend, forwards `/api/users/` requests to the user service and all other `/api/` requests to the deck service; it is the only port exposed. The database starts empty: `db/init.sql` creates each service's schema and login, and the deck service seeds sample decks on first run.
 
 To stop: `Ctrl+C`, or `docker compose down`. To also wipe the database: `docker compose down -v`.
 
 ## Running Tests
 
-From the `services/deck-service` directory:
+From a service's directory (e.g. `services/deck-service`):
 
 ```
 ./mvnw test
@@ -52,12 +52,14 @@ flashcards/
 ├── frontend/                 HTML, CSS, JS modules (served by the gateway)
 ├── gateway/                  nginx config: serves frontend, routes /api/ to services
 ├── services/                 One folder per microservice
-│   └── deck-service/         Spring Boot: decks, cards, study mode
-│       ├── Dockerfile
-│       └── src/
-│           ├── main/java/    Controllers, services, models, custom data structures
-│           └── test/         JUnit and MockMvc tests
-├── docker-compose.yml        Local environment: postgres, deck-service, gateway
+│   ├── deck-service/         Spring Boot: decks, cards, study mode
+│   │   ├── Dockerfile
+│   │   └── src/
+│   │       ├── main/java/    Controllers, services, models, custom data structures
+│   │       └── test/         JUnit and MockMvc tests
+│   └── user-service/         Spring Boot: accounts, signup, login
+├── db/init.sql               Database setup: one schema and login per service
+├── docker-compose.yml        Local environment: postgres, services, gateway
 └── .github/workflows/        CI/CD pipeline
 ```
 
