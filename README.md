@@ -79,15 +79,12 @@ flashcards/
 │       │   └── resources/
 │       │       └── static/   Frontend (HTML, CSS, JS modules)
 │       └── test/             JUnit and MockMvc tests
-├── docs/                     BRD, sprint notes, project log
 └── .github/workflows/        CI/CD pipeline
 ```
 
 ## Documentation
 
-- [Project Log](docs/project-log.md) — full project overview, architecture, API reference, and sprint summaries
-- [BRD](docs/BRD.md) — business requirements and success criteria
-- [Sprint Notes](docs/sprints/) — detailed notes for each sprint including decisions made and challenges
+This project is being restructured into a multi-service application. The original single-app version, including its BRD and sprint notes, is preserved in the [v1.0-dsa-final release](https://github.com/SeanMPeake/flashcards/releases/tag/v1.0-dsa-final).
 
 ## Custom Data Structures
 

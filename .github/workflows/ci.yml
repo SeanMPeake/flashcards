@@ -42,7 +42,9 @@ jobs:
     name: Deploy to Railway
     needs: backend
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Deploy paused during the multi-service restructure. To re-enable,
+    # restore: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: false
 
     steps:
       - name: Check out repository
