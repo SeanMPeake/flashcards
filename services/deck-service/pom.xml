@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.flashcards</groupId>
-	<artifactId>flashcards</artifactId>
+	<artifactId>deck-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>flashcards</name>
-	<description>flashcards app Spring 2026</description>
+	<name>deck-service</name>
+	<description>Deck and card service: decks, cards, and study mode</description>
 	<url/>
 	<licenses>
 		<license/>

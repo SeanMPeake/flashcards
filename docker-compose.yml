@@ -12,8 +12,8 @@ services:
       interval: 5s
       retries: 10
 
-  backend:
-    build: ./backend
+  deck-service:
+    build: ./services/deck-service
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flashcards
@@ -31,7 +31,7 @@ services:
       - ./frontend:/usr/share/nginx/html:ro
       - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - backend
+      - deck-service
 
 volumes:
   pgdata:

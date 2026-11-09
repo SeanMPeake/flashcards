@@ -20,7 +20,7 @@
 
 ## Project Architecture
 - SDEV 4310 final project: restructuring into four services — User, Deck/Card
-  (current backend/), Review Insights, Analytics — communicating via RabbitMQ events,
+  (services/deck-service/), Review Insights, Analytics — communicating via RabbitMQ events,
   with one PostgreSQL instance and a separate schema and database role per service.
 - Services communicate only over the network (HTTP or messages). Never import one
   service's classes into another.
