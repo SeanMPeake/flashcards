@@ -33,13 +33,13 @@ docker compose up --build
 
 Open [http://localhost:8080](http://localhost:8080).
 
-This starts three containers: PostgreSQL, the backend, and an nginx gateway. The gateway serves the frontend and forwards `/api/` requests to the backend; it is the only port exposed. The database starts empty and is seeded with sample decks on first run.
+This starts three containers: PostgreSQL, the deck service, and an nginx gateway. The gateway serves the frontend and forwards `/api/` requests to the deck service; it is the only port exposed. The database starts empty and is seeded with sample decks on first run.
 
 To stop: `Ctrl+C`, or `docker compose down`. To also wipe the database: `docker compose down -v`.
 
 ## Running Tests
 
-From the `backend` directory:
+From the `services/deck-service` directory:
 
 ```
 ./mvnw test
@@ -51,12 +51,13 @@ From the `backend` directory:
 flashcards/
 ├── frontend/                 HTML, CSS, JS modules (served by the gateway)
 ├── gateway/                  nginx config: serves frontend, routes /api/ to services
-├── backend/                  Spring Boot application
-│   ├── Dockerfile
-│   └── src/
-│       ├── main/java/        Controllers, services, models, custom data structures
-│       └── test/             JUnit and MockMvc tests
-├── docker-compose.yml        Local environment: postgres, backend, gateway
+├── services/                 One folder per microservice
+│   └── deck-service/         Spring Boot: decks, cards, study mode
+│       ├── Dockerfile
+│       └── src/
+│           ├── main/java/    Controllers, services, models, custom data structures
+│           └── test/         JUnit and MockMvc tests
+├── docker-compose.yml        Local environment: postgres, deck-service, gateway
 └── .github/workflows/        CI/CD pipeline
 ```
 

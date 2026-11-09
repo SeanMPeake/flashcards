@@ -8,11 +8,6 @@
 // average-case lookup and insert. A power-of-two capacity also improves
 // distribution: id % capacity becomes a clean bitmask operation, reducing
 // clustering compared to an arbitrary modulus.
-//
-// Note: NavigationStack and CardViewSet are custom implementations for concept
-// demonstration. As frontend JS structures supporting session UX, they are not
-// the primary data structures under evaluation for this project — the MinHeap
-// and CardHashMap on the backend are the intended DS&A deliverables.
 export class CardViewSet {
     #buckets;
     #capacity;

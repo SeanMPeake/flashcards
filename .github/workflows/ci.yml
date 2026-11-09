@@ -12,13 +12,13 @@ on:
       - develop
 
 jobs:
-  backend:
-    name: Backend Build and Test
+  deck-service:
+    name: Deck Service Build and Test
     runs-on: ubuntu-latest
 
     defaults:
       run:
-        working-directory: backend
+        working-directory: services/deck-service
 
     steps:
       - name: Check out repository
@@ -30,17 +30,17 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
-          cache-dependency-path: backend/pom.xml
+          cache-dependency-path: services/deck-service/pom.xml
 
       - name: Make Maven wrapper executable
         run: chmod +x mvnw
 
-      - name: Run backend tests
+      - name: Run deck service tests
         run: ./mvnw clean test
 
   deploy:
     name: Deploy to Railway
-    needs: backend
+    needs: deck-service
     runs-on: ubuntu-latest
     # Deploy paused during the multi-service restructure. To re-enable,
     # restore: github.ref == 'refs/heads/main' && github.event_name == 'push'
