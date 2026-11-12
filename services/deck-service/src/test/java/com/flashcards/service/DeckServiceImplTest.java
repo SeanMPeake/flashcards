@@ -15,6 +15,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 
 import java.lang.reflect.Field;
 import java.util.List;
@@ -43,8 +44,37 @@ class DeckServiceImplTest {
     @Mock
     private DeckRepository deckRepository;
 
+    // The dev-only seeder. By default getIfAvailable() returns null, like production.
+    @Mock
+    private ObjectProvider<DataLoader> sampleDecks;
+
+    @Mock
+    private DataLoader dataLoader;
+
     @InjectMocks
     private DeckServiceImpl deckService;
+
+    @Test
+    @DisplayName("getDecks seeds sample decks first when the dev seeder is present")
+    void getDecksSeedsInDev() {
+        given(sampleDecks.getIfAvailable()).willReturn(dataLoader);
+        given(deckRepository.findDeckSummaries(USER)).willReturn(List.of());
+
+        deckService.getDecks(USER);
+
+        then(dataLoader).should().seedSampleDecksIfEmpty(USER);
+    }
+
+    @Test
+    @DisplayName("getDecks seeds nothing when there is no dev seeder (production)")
+    void getDecksDoesNotSeedInProduction() {
+        given(sampleDecks.getIfAvailable()).willReturn(null);
+        given(deckRepository.findDeckSummaries(USER)).willReturn(List.of());
+
+        deckService.getDecks(USER);
+
+        then(dataLoader).should(never()).seedSampleDecksIfEmpty(any());
+    }
 
     @Test
     @DisplayName("getDecks returns only the user's deck summaries")

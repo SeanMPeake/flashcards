@@ -23,7 +23,7 @@ services:
       context: ./services          # the whole services/ folder, so shared modules are visible
       dockerfile: deck-service/Dockerfile
     environment:
-      SPRING_PROFILES_ACTIVE: prod
+      SPRING_PROFILES_ACTIVE: prod,dev   # dev: sample decks for every user (local only)
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flashcards?currentSchema=content
       SPRING_DATASOURCE_USERNAME: content_svc
       SPRING_DATASOURCE_PASSWORD: content_svc

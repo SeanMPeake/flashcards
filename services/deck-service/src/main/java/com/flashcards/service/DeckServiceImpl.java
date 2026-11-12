@@ -9,6 +9,7 @@ import com.flashcards.exception.DeckNotFoundException;
 import com.flashcards.model.Card;
 import com.flashcards.model.Deck;
 import com.flashcards.repository.DeckRepository;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,15 +22,25 @@ public class DeckServiceImpl implements DeckService {
 
     private final DeckRepository deckRepository;
 
-    public DeckServiceImpl(DeckRepository deckRepository) {
+    // The dev-only sample-deck seeder. ObjectProvider lets this service work whether
+    // or not it exists: in production (no "dev" profile) there is none.
+    private final ObjectProvider<DataLoader> sampleDecks;
+
+    public DeckServiceImpl(DeckRepository deckRepository, ObjectProvider<DataLoader> sampleDecks) {
         this.deckRepository = deckRepository;
+        this.sampleDecks = sampleDecks;
     }
 
     // readOnly = true signals that no writes will occur, allowing the
     // database to skip locking overhead and preventing accidental persistence.
+    // (The dev-only seed below writes in its own separate transaction.)
     @Transactional(readOnly = true)
     @Override
     public List<DeckSummaryResponse> getDecks(Long userId) {
+        DataLoader loader = sampleDecks.getIfAvailable();
+        if (loader != null) {
+            loader.seedSampleDecksIfEmpty(userId);
+        }
         return deckRepository.findDeckSummaries(userId);
     }
 

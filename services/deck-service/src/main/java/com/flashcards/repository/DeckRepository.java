@@ -34,4 +34,7 @@ public interface DeckRepository extends JpaRepository<Deck, Long> {
     Optional<Deck> findByIdAndOwnerUserId(Long id, Long ownerUserId);
 
     boolean existsByIdAndOwnerUserId(Long id, Long ownerUserId);
+
+    // Whether this user has any decks at all (used by the dev-only sample seed).
+    boolean existsByOwnerUserId(Long ownerUserId);
 }
