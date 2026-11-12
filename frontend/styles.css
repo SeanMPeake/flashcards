@@ -475,6 +475,71 @@ h2 {
     gap: 10px;
 }
 
+/* — Session bar and login screen — */
+
+.session-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 8px;
+    color: var(--muted);
+}
+
+.session-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.session-actions .secondary-button {
+    min-width: 0;
+    padding: 8px 16px;
+}
+
+.auth-panel {
+    width: min(100%, 460px);
+}
+
+.auth-panel h2 {
+    margin-bottom: 20px;
+}
+
+.field-hint {
+    margin: 6px 0 0;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.field-error {
+    margin: 6px 0 0;
+    font-size: 0.85rem;
+    color: #b3261e;
+}
+
+.auth-actions {
+    margin-top: 24px;
+}
+
+.auth-switch {
+    margin: 20px 0 0;
+    color: var(--muted);
+}
+
+.link-button {
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--accent-strong);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.link-button:hover,
+.link-button:focus-visible {
+    color: var(--accent);
+    outline: none;
+}
+
 @media (max-width: 720px) {
     .app-shell {
         padding: 18px;

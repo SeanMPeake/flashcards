@@ -1,5 +1,27 @@
 // Centralized DOM references for all views.
 // Keeping selectors in one module makes the rest of the frontend easier to read and update.
+
+// Session bar (shown once logged in)
+export const sessionBarEl = document.getElementById("session-bar");
+export const sessionUsernameEl = document.getElementById("session-username");
+export const homeButtonEl = document.getElementById("home-button");
+export const logoutButtonEl = document.getElementById("logout-button");
+
+// Login / signup
+export const authViewEl = document.getElementById("auth-view");
+export const authTitleEl = document.getElementById("auth-title");
+export const authFormEl = document.getElementById("auth-form");
+export const authUsernameInputEl = document.getElementById("auth-username-input");
+export const authUsernameHintEl = document.getElementById("auth-username-hint");
+export const authUsernameErrorEl = document.getElementById("auth-username-error");
+export const authPasswordInputEl = document.getElementById("auth-password-input");
+export const authPasswordHintEl = document.getElementById("auth-password-hint");
+export const authPasswordErrorEl = document.getElementById("auth-password-error");
+export const authFormErrorEl = document.getElementById("auth-form-error");
+export const authSubmitButtonEl = document.getElementById("auth-submit-button");
+export const authSwitchTextEl = document.getElementById("auth-switch-text");
+export const authSwitchButtonEl = document.getElementById("auth-switch-button");
+
 export const welcomeViewEl = document.getElementById("welcome-view");
 export const deckSelectionViewEl = document.getElementById("deck-selection-view");
 export const studyViewEl = document.getElementById("study-view");

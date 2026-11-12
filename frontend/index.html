@@ -8,7 +8,47 @@
 </head>
 <body>
     <main class="app-shell">
-        <section id="welcome-view" class="view">
+        <!-- Shown on every screen once logged in -->
+        <header id="session-bar" class="session-bar hidden">
+            <span class="session-user">Signed in as <strong id="session-username"></strong></span>
+            <div class="session-actions">
+                <button id="home-button" type="button" class="secondary-button">Home</button>
+                <button id="logout-button" type="button" class="secondary-button">Log out</button>
+            </div>
+        </header>
+
+        <!-- Login and signup share one form; the mode switch changes its wording and hints -->
+        <section id="auth-view" class="view hidden">
+            <div class="panel auth-panel">
+                <p class="eyebrow">Flashcards Study App</p>
+                <h2 id="auth-title">Log in</h2>
+
+                <form id="auth-form" novalidate>
+                    <label class="edit-label" for="auth-username-input">Username</label>
+                    <input id="auth-username-input" type="text" class="edit-input" autocomplete="username" />
+                    <p id="auth-username-hint" class="field-hint hidden">8–20 characters: letters, numbers, and underscores.</p>
+                    <p id="auth-username-error" class="field-error hidden"></p>
+
+                    <label class="edit-label" for="auth-password-input">Password</label>
+                    <input id="auth-password-input" type="password" class="edit-input" autocomplete="current-password" />
+                    <p id="auth-password-hint" class="field-hint hidden">10–64 characters with a letter, a number, and a symbol; no spaces.</p>
+                    <p id="auth-password-error" class="field-error hidden"></p>
+
+                    <p id="auth-form-error" class="field-error hidden"></p>
+
+                    <div class="form-actions auth-actions">
+                        <button id="auth-submit-button" type="submit" class="primary-button">Log in</button>
+                    </div>
+                </form>
+
+                <p class="auth-switch">
+                    <span id="auth-switch-text">New here?</span>
+                    <button id="auth-switch-button" type="button" class="link-button">Create an account</button>
+                </p>
+            </div>
+        </section>
+
+        <section id="welcome-view" class="view hidden">
             <div class="hero-card">
                 <p class="eyebrow">Flashcards Study App</p>
                 <h1>Choose a mode</h1>
