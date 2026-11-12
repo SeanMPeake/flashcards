@@ -26,6 +26,12 @@
 		<url/>
 	</scm>
 	<dependencies>
+		<!-- Shared contracts: JwtVerifier for checking login tokens -->
+		<dependency>
+			<groupId>com.flashcards</groupId>
+			<artifactId>common</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>

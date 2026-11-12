@@ -1,3 +1,8 @@
+# Shared login-token secret (HS256): the user service signs tokens with it and the
+# deck service verifies them with it, so both must use the same value. Defined once
+# here (a YAML anchor) and referenced below with *jwt-secret. Local development only.
+x-jwt-secret: &jwt-secret local-dev-only-jwt-secret-change-in-production
+
 services:
   postgres:
     image: postgres:17
@@ -22,6 +27,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flashcards?currentSchema=content
       SPRING_DATASOURCE_USERNAME: content_svc
       SPRING_DATASOURCE_PASSWORD: content_svc
+      JWT_SECRET: *jwt-secret
     depends_on:
       postgres:
         condition: service_healthy   # wait until Postgres accepts connections
@@ -35,7 +41,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flashcards?currentSchema=users
       SPRING_DATASOURCE_USERNAME: user_svc
       SPRING_DATASOURCE_PASSWORD: user_svc
-      JWT_SECRET: local-dev-only-jwt-secret-change-in-production   # 46 bytes; local only
+      JWT_SECRET: *jwt-secret
     depends_on:
       postgres:
         condition: service_healthy
