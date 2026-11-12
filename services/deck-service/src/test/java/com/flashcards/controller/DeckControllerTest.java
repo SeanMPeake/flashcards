@@ -1,9 +1,11 @@
 package com.flashcards.controller;
 
+import com.flashcards.common.security.AuthenticatedUser;
 import com.flashcards.dto.response.CardResponse;
 import com.flashcards.dto.response.DeckResponse;
 import com.flashcards.dto.response.DeckSummaryResponse;
 import com.flashcards.exception.DeckNotFoundException;
+import com.flashcards.security.JwtAuthFilter;
 import com.flashcards.service.DeckService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,14 +21,20 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 // Web Layer Test — loads the Spring MVC slice (@WebMvcTest) to verify HTTP behavior.
 // The service layer is mocked; the controller, routing, and exception handler are exercised together.
+//
+// The token filter is not part of this slice (it has its own tests), so each request
+// carries the logged-in user directly, the way the filter attaches it.
 @WebMvcTest(DeckController.class)
 class DeckControllerTest {
+
+    private static final AuthenticatedUser USER = new AuthenticatedUser(1L, "SeanPeake");
 
     @Autowired
     private MockMvc mockMvc;
@@ -35,14 +43,14 @@ class DeckControllerTest {
     private DeckService deckService;
 
     @Test
-    @DisplayName("GET /api/decks returns all decks")
+    @DisplayName("GET /api/decks returns the logged-in user's decks")
     void getDecksReturnsAllDecks() throws Exception {
         DeckSummaryResponse deck1 = new DeckSummaryResponse(1L, "Java Basics", "Core Java review cards", 2);
         DeckSummaryResponse deck2 = new DeckSummaryResponse(2L, "SDLC Terms", "Software development life cycle concepts", 0);
 
-        given(deckService.getDecks()).willReturn(List.of(deck1, deck2));
+        given(deckService.getDecks(1L)).willReturn(List.of(deck1, deck2));
 
-        mockMvc.perform(get("/api/decks"))
+        mockMvc.perform(get("/api/decks").requestAttr(JwtAuthFilter.AUTHENTICATED_USER, USER))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.length()").value(2))
@@ -50,14 +58,17 @@ class DeckControllerTest {
                 .andExpect(jsonPath("$[0].cardCount").value(2))
                 .andExpect(jsonPath("$[0].cards").doesNotExist())
                 .andExpect(jsonPath("$[1].name").value("SDLC Terms"));
+
+        // The controller passes on the id of the user the filter attached.
+        then(deckService).should().getDecks(1L);
     }
 
     @Test
-    @DisplayName("GET /api/decks returns empty list when no decks exist")
+    @DisplayName("GET /api/decks returns empty list when the user has no decks")
     void getDecksReturnsEmptyList() throws Exception {
-        given(deckService.getDecks()).willReturn(List.of());
+        given(deckService.getDecks(1L)).willReturn(List.of());
 
-        mockMvc.perform(get("/api/decks"))
+        mockMvc.perform(get("/api/decks").requestAttr(JwtAuthFilter.AUTHENTICATED_USER, USER))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("[]"));
@@ -71,9 +82,9 @@ class DeckControllerTest {
         CardResponse card = new CardResponse(1L, "What does SQL stand for?", "Structured Query Language.", 1);
         DeckResponse deck = new DeckResponse(1L, "SQL Basics", "Intro database review", now, now, 1, List.of(card));
 
-        given(deckService.getDeckById(1L)).willReturn(deck);
+        given(deckService.getDeckById(1L, 1L)).willReturn(deck);
 
-        mockMvc.perform(get("/api/decks/1"))
+        mockMvc.perform(get("/api/decks/1").requestAttr(JwtAuthFilter.AUTHENTICATED_USER, USER))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.name").value("SQL Basics"))
@@ -85,9 +96,9 @@ class DeckControllerTest {
     @Test
     @DisplayName("GET /api/decks/{id} returns 404 with error body when deck is not found")
     void getDeckByIdReturnsNotFound() throws Exception {
-        given(deckService.getDeckById(999L)).willThrow(new DeckNotFoundException(999L));
+        given(deckService.getDeckById(1L, 999L)).willThrow(new DeckNotFoundException(999L));
 
-        mockMvc.perform(get("/api/decks/999"))
+        mockMvc.perform(get("/api/decks/999").requestAttr(JwtAuthFilter.AUTHENTICATED_USER, USER))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("Deck not found with id: 999"));
@@ -96,9 +107,9 @@ class DeckControllerTest {
     @Test
     @DisplayName("GET /api/decks/{id} returns 500 with generic error body on unexpected exception")
     void getDeckByIdReturnsInternalServerError() throws Exception {
-        given(deckService.getDeckById(1L)).willThrow(new RuntimeException("unexpected"));
+        given(deckService.getDeckById(1L, 1L)).willThrow(new RuntimeException("unexpected"));
 
-        mockMvc.perform(get("/api/decks/1"))
+        mockMvc.perform(get("/api/decks/1").requestAttr(JwtAuthFilter.AUTHENTICATED_USER, USER))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.status").value(500))
                 .andExpect(jsonPath("$.message").value("An unexpected error occurred."));
@@ -110,9 +121,10 @@ class DeckControllerTest {
         LocalDateTime now = LocalDateTime.now();
         DeckResponse created = new DeckResponse(1L, "Java Basics", "Core Java review cards", now, now, 0, List.of());
 
-        given(deckService.createDeck(any())).willReturn(created);
+        given(deckService.createDeck(eq(1L), any())).willReturn(created);
 
         mockMvc.perform(post("/api/decks")
+                        .requestAttr(JwtAuthFilter.AUTHENTICATED_USER, USER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Java Basics\",\"description\":\"Core Java review cards\"}"))
                 .andExpect(status().isCreated())
@@ -126,9 +138,10 @@ class DeckControllerTest {
         LocalDateTime now = LocalDateTime.now();
         DeckResponse updated = new DeckResponse(1L, "Updated Name", "Updated description", now, now, 0, List.of());
 
-        given(deckService.updateDeck(eq(1L), any())).willReturn(updated);
+        given(deckService.updateDeck(eq(1L), eq(1L), any())).willReturn(updated);
 
         mockMvc.perform(put("/api/decks/1")
+                        .requestAttr(JwtAuthFilter.AUTHENTICATED_USER, USER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Updated Name\",\"description\":\"Updated description\"}"))
                 .andExpect(status().isOk())
@@ -138,14 +151,17 @@ class DeckControllerTest {
     @Test
     @DisplayName("DELETE /api/decks/{id} returns 204 when deck is deleted")
     void deleteDeckReturnsNoContent() throws Exception {
-        mockMvc.perform(delete("/api/decks/1"))
+        mockMvc.perform(delete("/api/decks/1").requestAttr(JwtAuthFilter.AUTHENTICATED_USER, USER))
                 .andExpect(status().isNoContent());
+
+        then(deckService).should().deleteDeck(1L, 1L);
     }
 
     @Test
     @DisplayName("POST /api/decks returns 400 when name is blank")
     void createDeckReturnsBadRequestWhenNameIsBlank() throws Exception {
         mockMvc.perform(post("/api/decks")
+                        .requestAttr(JwtAuthFilter.AUTHENTICATED_USER, USER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"\",\"description\":\"Some description\"}"))
                 .andExpect(status().isBadRequest())
@@ -156,6 +172,7 @@ class DeckControllerTest {
     @DisplayName("PUT /api/decks/{id} returns 400 when name is blank")
     void updateDeckReturnsBadRequestWhenNameIsBlank() throws Exception {
         mockMvc.perform(put("/api/decks/1")
+                        .requestAttr(JwtAuthFilter.AUTHENTICATED_USER, USER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"\",\"description\":\"Some description\"}"))
                 .andExpect(status().isBadRequest())
@@ -165,9 +182,9 @@ class DeckControllerTest {
     @Test
     @DisplayName("DELETE /api/decks/{id} returns 404 when deck is not found")
     void deleteDeckReturnsNotFound() throws Exception {
-        willThrow(new DeckNotFoundException(999L)).given(deckService).deleteDeck(999L);
+        willThrow(new DeckNotFoundException(999L)).given(deckService).deleteDeck(1L, 999L);
 
-        mockMvc.perform(delete("/api/decks/999"))
+        mockMvc.perform(delete("/api/decks/999").requestAttr(JwtAuthFilter.AUTHENTICATED_USER, USER))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("Deck not found with id: 999"));

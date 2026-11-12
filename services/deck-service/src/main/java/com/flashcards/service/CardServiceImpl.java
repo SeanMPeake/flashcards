@@ -25,8 +25,8 @@ public class CardServiceImpl implements CardService {
 
     @Transactional
     @Override
-    public CardResponse createCard(Long deckId, CreateCardRequest request) {
-        Deck deck = deckRepository.findById(deckId)
+    public CardResponse createCard(Long userId, Long deckId, CreateCardRequest request) {
+        Deck deck = deckRepository.findByIdAndOwnerUserId(deckId, userId)
                 .orElseThrow(() -> new DeckNotFoundException(deckId));
 
         // New cards are assigned priority = current deck size + 1, giving each card
@@ -39,8 +39,8 @@ public class CardServiceImpl implements CardService {
 
     @Transactional
     @Override
-    public CardResponse updateCard(Long deckId, Long cardId, UpdateCardRequest request) {
-        Card card = requireCardInDeck(deckId, cardId);
+    public CardResponse updateCard(Long userId, Long deckId, Long cardId, UpdateCardRequest request) {
+        Card card = requireCardInOwnedDeck(userId, deckId, cardId);
         card.setFrontText(request.getFrontText());
         card.setBackText(request.getBackText());
         
@@ -49,16 +49,17 @@ public class CardServiceImpl implements CardService {
 
     @Transactional
     @Override
-    public void deleteCard(Long deckId, Long cardId) {
-        requireCardInDeck(deckId, cardId);
+    public void deleteCard(Long userId, Long deckId, Long cardId) {
+        requireCardInOwnedDeck(userId, deckId, cardId);
         cardRepository.deleteById(cardId);
     }
 
-    // Validates that the deck exists, the card exists, and the card belongs to that deck.
-    // Cards that exist under a different deck are treated as not found — the client
-    // requested the card in the context of the wrong deck.
-    private Card requireCardInDeck(Long deckId, Long cardId) {
-        if (!deckRepository.existsById(deckId)) {
+    // Validates that the deck exists and belongs to this user, the card exists, and
+    // the card belongs to that deck. Cards under a different deck are treated as not
+    // found — the client requested the card in the context of the wrong deck. Card
+    // ownership comes through the deck: user owns deck, deck owns card.
+    private Card requireCardInOwnedDeck(Long userId, Long deckId, Long cardId) {
+        if (!deckRepository.existsByIdAndOwnerUserId(deckId, userId)) {
             throw new DeckNotFoundException(deckId);
         }
         Card card = cardRepository.findById(cardId)

@@ -24,11 +24,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.never;
 
 // Service Unit Test — tests CardServiceImpl logic with repository dependencies mocked via Mockito.
 // No Spring context is loaded; only the service class itself is exercised.
+//
+// Cards are owned through their deck, so every operation first checks that the
+// deck belongs to the logged-in user.
 @ExtendWith(MockitoExtension.class)
 class CardServiceImplTest {
+
+    private static final Long USER = 1L;
+    private static final Long OTHER_USER = 2L;
 
     @Mock
     private CardRepository cardRepository;
@@ -42,20 +49,20 @@ class CardServiceImplTest {
     @Test
     @DisplayName("createCard saves and returns mapped response")
     void createCardSavesAndReturnsResponse() throws Exception {
-        Deck deck = new Deck("Java Basics", "Core Java review cards");
+        Deck deck = new Deck(USER, "Java Basics", "Core Java review cards");
         setId(deck, 1L);
 
         Card saved = new Card(deck, "What is JVM?", "Java Virtual Machine.", 0);
         setId(saved, 5L);
 
-        given(deckRepository.findById(1L)).willReturn(Optional.of(deck));
+        given(deckRepository.findByIdAndOwnerUserId(1L, USER)).willReturn(Optional.of(deck));
         given(cardRepository.save(any(Card.class))).willReturn(saved);
 
         CreateCardRequest request = new CreateCardRequest();
         request.setFrontText("What is JVM?");
         request.setBackText("Java Virtual Machine.");
 
-        CardResponse result = cardService.createCard(1L, request);
+        CardResponse result = cardService.createCard(USER, 1L, request);
 
         assertEquals(5L, result.getId());
         assertEquals("What is JVM?", result.getFrontText());
@@ -64,27 +71,40 @@ class CardServiceImplTest {
     }
 
     @Test
-    @DisplayName("createCard throws when deck is not found")
+    @DisplayName("createCard throws when the deck is not found")
     void createCardThrowsWhenDeckNotFound() {
-        given(deckRepository.findById(999L)).willReturn(Optional.empty());
+        given(deckRepository.findByIdAndOwnerUserId(999L, USER)).willReturn(Optional.empty());
 
         CreateCardRequest request = new CreateCardRequest();
         request.setFrontText("Q");
         request.setBackText("A");
 
-        assertThrows(DeckNotFoundException.class, () -> cardService.createCard(999L, request));
+        assertThrows(DeckNotFoundException.class, () -> cardService.createCard(USER, 999L, request));
+    }
+
+    @Test
+    @DisplayName("createCard throws for another user's deck and saves nothing")
+    void createCardThrowsForAnotherUsersDeck() {
+        given(deckRepository.findByIdAndOwnerUserId(1L, OTHER_USER)).willReturn(Optional.empty());
+
+        CreateCardRequest request = new CreateCardRequest();
+        request.setFrontText("Q");
+        request.setBackText("A");
+
+        assertThrows(DeckNotFoundException.class, () -> cardService.createCard(OTHER_USER, 1L, request));
+        then(cardRepository).should(never()).save(any());
     }
 
     @Test
     @DisplayName("updateCard updates fields and returns mapped response")
     void updateCardUpdatesAndReturnsResponse() throws Exception {
-        Deck deck = new Deck("Java Basics", "Core Java review cards");
+        Deck deck = new Deck(USER, "Java Basics", "Core Java review cards");
         setId(deck, 1L);
 
         Card card = new Card(deck, "Old front", "Old back", 0);
         setId(card, 2L);
 
-        given(deckRepository.existsById(1L)).willReturn(true);
+        given(deckRepository.existsByIdAndOwnerUserId(1L, USER)).willReturn(true);
         given(cardRepository.findById(2L)).willReturn(Optional.of(card));
         given(cardRepository.save(card)).willReturn(card);
 
@@ -92,109 +112,118 @@ class CardServiceImplTest {
         request.setFrontText("New front");
         request.setBackText("New back");
 
-        CardResponse result = cardService.updateCard(1L, 2L, request);
+        CardResponse result = cardService.updateCard(USER, 1L, 2L, request);
 
         assertEquals("New front", result.getFrontText());
         assertEquals("New back", result.getBackText());
     }
 
     @Test
-    @DisplayName("updateCard throws when deck is not found")
+    @DisplayName("updateCard throws when the deck is not found")
     void updateCardThrowsWhenDeckNotFound() {
-        given(deckRepository.existsById(999L)).willReturn(false);
+        given(deckRepository.existsByIdAndOwnerUserId(999L, USER)).willReturn(false);
 
         UpdateCardRequest request = new UpdateCardRequest();
         request.setFrontText("Q");
         request.setBackText("A");
 
-        assertThrows(DeckNotFoundException.class, () -> cardService.updateCard(999L, 1L, request));
+        assertThrows(DeckNotFoundException.class, () -> cardService.updateCard(USER, 999L, 1L, request));
     }
 
     @Test
-    @DisplayName("updateCard throws when card is not found")
+    @DisplayName("updateCard throws for a card in another user's deck and never loads it")
+    void updateCardThrowsForAnotherUsersDeck() {
+        given(deckRepository.existsByIdAndOwnerUserId(1L, OTHER_USER)).willReturn(false);
+
+        UpdateCardRequest request = new UpdateCardRequest();
+        request.setFrontText("Q");
+        request.setBackText("A");
+
+        assertThrows(DeckNotFoundException.class, () -> cardService.updateCard(OTHER_USER, 1L, 2L, request));
+        then(cardRepository).should(never()).findById(any());
+    }
+
+    @Test
+    @DisplayName("updateCard throws when the card is not found")
     void updateCardThrowsWhenCardNotFound() {
-        given(deckRepository.existsById(1L)).willReturn(true);
+        given(deckRepository.existsByIdAndOwnerUserId(1L, USER)).willReturn(true);
         given(cardRepository.findById(999L)).willReturn(Optional.empty());
 
         UpdateCardRequest request = new UpdateCardRequest();
         request.setFrontText("Q");
         request.setBackText("A");
 
-        assertThrows(CardNotFoundException.class, () -> cardService.updateCard(1L, 999L, request));
+        assertThrows(CardNotFoundException.class, () -> cardService.updateCard(USER, 1L, 999L, request));
     }
 
     @Test
-    @DisplayName("updateCard throws when card does not belong to the specified deck")
+    @DisplayName("updateCard throws when the card does not belong to the specified deck")
     void updateCardThrowsWhenCardNotInDeck() throws Exception {
-        Deck deckOne = new Deck("Deck One", "First deck");
+        Deck deckOne = new Deck(USER, "Deck One", "First deck");
         setId(deckOne, 1L);
-
-        Deck deckTwo = new Deck("Deck Two", "Second deck");
-        setId(deckTwo, 2L);
 
         Card card = new Card(deckOne, "Q", "A", 0);
         setId(card, 5L);
 
-        given(deckRepository.existsById(2L)).willReturn(true);
+        // The user owns deck 2 as well, but card 5 lives in deck 1.
+        given(deckRepository.existsByIdAndOwnerUserId(2L, USER)).willReturn(true);
         given(cardRepository.findById(5L)).willReturn(Optional.of(card));
 
         UpdateCardRequest request = new UpdateCardRequest();
         request.setFrontText("New Q");
         request.setBackText("New A");
 
-        assertThrows(CardNotFoundException.class, () -> cardService.updateCard(2L, 5L, request));
+        assertThrows(CardNotFoundException.class, () -> cardService.updateCard(USER, 2L, 5L, request));
     }
 
     @Test
-    @DisplayName("deleteCard removes card when found")
+    @DisplayName("deleteCard removes the card when found")
     void deleteCardRemovesCard() throws Exception {
-        Deck deck = new Deck("Java Basics", "Core Java review cards");
+        Deck deck = new Deck(USER, "Java Basics", "Core Java review cards");
         setId(deck, 1L);
 
         Card card = new Card(deck, "Q", "A", 0);
         setId(card, 2L);
 
-        given(deckRepository.existsById(1L)).willReturn(true);
+        given(deckRepository.existsByIdAndOwnerUserId(1L, USER)).willReturn(true);
         given(cardRepository.findById(2L)).willReturn(Optional.of(card));
 
-        cardService.deleteCard(1L, 2L);
+        cardService.deleteCard(USER, 1L, 2L);
 
         then(cardRepository).should().deleteById(2L);
     }
 
     @Test
-    @DisplayName("deleteCard throws when deck is not found")
-    void deleteCardThrowsWhenDeckNotFound() {
-        given(deckRepository.existsById(999L)).willReturn(false);
+    @DisplayName("deleteCard throws for a card in another user's deck and deletes nothing")
+    void deleteCardThrowsForAnotherUsersDeck() {
+        given(deckRepository.existsByIdAndOwnerUserId(1L, OTHER_USER)).willReturn(false);
 
-        assertThrows(DeckNotFoundException.class, () -> cardService.deleteCard(999L, 1L));
+        assertThrows(DeckNotFoundException.class, () -> cardService.deleteCard(OTHER_USER, 1L, 2L));
+        then(cardRepository).should(never()).deleteById(any());
     }
 
     @Test
-    @DisplayName("deleteCard throws when card is not found")
+    @DisplayName("deleteCard throws when the card is not found")
     void deleteCardThrowsWhenCardNotFound() {
-        given(deckRepository.existsById(1L)).willReturn(true);
+        given(deckRepository.existsByIdAndOwnerUserId(1L, USER)).willReturn(true);
         given(cardRepository.findById(999L)).willReturn(Optional.empty());
 
-        assertThrows(CardNotFoundException.class, () -> cardService.deleteCard(1L, 999L));
+        assertThrows(CardNotFoundException.class, () -> cardService.deleteCard(USER, 1L, 999L));
     }
 
     @Test
-    @DisplayName("deleteCard throws when card does not belong to the specified deck")
+    @DisplayName("deleteCard throws when the card does not belong to the specified deck")
     void deleteCardThrowsWhenCardNotInDeck() throws Exception {
-        Deck deckOne = new Deck("Deck One", "First deck");
+        Deck deckOne = new Deck(USER, "Deck One", "First deck");
         setId(deckOne, 1L);
-
-        Deck deckTwo = new Deck("Deck Two", "Second deck");
-        setId(deckTwo, 2L);
 
         Card card = new Card(deckOne, "Q", "A", 0);
         setId(card, 5L);
 
-        given(deckRepository.existsById(2L)).willReturn(true);
+        given(deckRepository.existsByIdAndOwnerUserId(2L, USER)).willReturn(true);
         given(cardRepository.findById(5L)).willReturn(Optional.of(card));
 
-        assertThrows(CardNotFoundException.class, () -> cardService.deleteCard(2L, 5L));
+        assertThrows(CardNotFoundException.class, () -> cardService.deleteCard(USER, 2L, 5L));
     }
 
     private void setId(Object target, Long id) throws Exception {

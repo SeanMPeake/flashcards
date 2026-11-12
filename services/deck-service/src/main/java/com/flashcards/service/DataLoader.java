@@ -23,9 +23,11 @@ public class DataLoader {
             // Only seed data if the database is empty so the same records are not duplicated
             // each time the application restarts.
             if (deckRepository.count() == 0) {
-                Deck javaDeck = new Deck("Java Basics", "Core Java concepts and syntax");
-                Deck sdlcDeck = new Deck("SDLC Terms", "Software development life cycle concepts");
-                Deck sqlDeck = new Deck("SQL Basics", "Relational database and query fundamentals");
+                // Owner 1 for now; step 4c makes this the dev test account's id.
+                Long ownerUserId = 1L;
+                Deck javaDeck = new Deck(ownerUserId, "Java Basics", "Core Java concepts and syntax");
+                Deck sdlcDeck = new Deck(ownerUserId, "SDLC Terms", "Software development life cycle concepts");
+                Deck sqlDeck = new Deck(ownerUserId, "SQL Basics", "Relational database and query fundamentals");
 
                 deckRepository.saveAll(List.of(javaDeck, sdlcDeck, sqlDeck));
 

@@ -224,7 +224,7 @@ class StudyServiceImplTest {
     }
 
     private Card makeCard(Long id, String frontText, String backText, int priority) throws Exception {
-        Deck deck = new Deck("Test", null);
+        Deck deck = new Deck(1L, "Test", null);
         Card card = new Card(deck, frontText, backText, priority);
         setId(card, id);
         return card;

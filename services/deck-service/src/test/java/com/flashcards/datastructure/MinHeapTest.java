@@ -17,7 +17,7 @@ class MinHeapTest {
     // Builds a list of cards with the given priorities, assigning sequential IDs starting at 1.
     // IDs are set via reflection since Card entities are not persisted in unit tests.
     private List<Card> cards(int... priorities) throws Exception {
-        Deck deck = new Deck("Test", null);
+        Deck deck = new Deck(1L, "Test", null);
         List<Card> list = new ArrayList<>();
         for (int i = 0; i < priorities.length; i++) {
             Card card = new Card(deck, "front", "back", priorities[i]);

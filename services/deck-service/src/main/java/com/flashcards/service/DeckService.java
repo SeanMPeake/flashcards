@@ -7,15 +7,17 @@ import com.flashcards.dto.response.DeckSummaryResponse;
 
 import java.util.List;
 
+// Every method takes the id of the logged-in user (from their token) and only
+// ever reads or changes that user's own decks.
 public interface DeckService {
 
-    List<DeckSummaryResponse> getDecks();
+    List<DeckSummaryResponse> getDecks(Long userId);
 
-    DeckResponse getDeckById(Long id);
+    DeckResponse getDeckById(Long userId, Long id);
 
-    DeckResponse createDeck(CreateDeckRequest request);
+    DeckResponse createDeck(Long userId, CreateDeckRequest request);
 
-    DeckResponse updateDeck(Long id, UpdateDeckRequest request);
+    DeckResponse updateDeck(Long userId, Long id, UpdateDeckRequest request);
 
-    void deleteDeck(Long id);
+    void deleteDeck(Long userId, Long id);
 }
