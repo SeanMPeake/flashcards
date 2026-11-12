@@ -84,9 +84,17 @@ public class StudyServiceImpl implements StudyService {
             throw new CardNotFoundException(request.getCardId());
         }
 
+        // A card added to the deck after this session was built (e.g. in another tab)
+        // isn't in the session yet: rebuild it from the database so it includes the card.
+        if (session.findCard(viewed.getId()) == null) {
+            session = sessionManager.createSession(userId, deckId, cardRepository.findByDeckId(deckId));
+        }
+
         // Reschedule the card the user just viewed and persist its updated priority.
+        // The current priority comes from the database, not the request, so a client
+        // can't set an arbitrary value; it is saved on every step, so it matches the heap.
         int newPriority = session.reschedule(
-                request.getCardId(), request.getPriority(), request.isMarkForReview());
+                viewed.getId(), viewed.getPriority(), request.isMarkForReview());
         viewed.setPriority(newPriority);
         cardRepository.save(viewed);
 

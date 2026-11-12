@@ -41,11 +41,19 @@ function setMode(newMode) {
     // "Remember username" only applies to logging in.
     authRememberLabelEl.classList.toggle("hidden", isSignup);
 
-    // A new account always starts with a blank form, so a previous user's
-    // name is never carried over.
     if (isSignup) {
+        // A new account always starts with a blank form, so a previous user's
+        // name is never carried over.
         authUsernameInputEl.value = "";
         authPasswordInputEl.value = "";
+    } else {
+        // Coming (back) to login: restore the remembered username and checkbox,
+        // so a trip to the signup form doesn't lose or silently forget them.
+        const remembered = getRememberedUsername();
+        if (remembered) {
+            authUsernameInputEl.value = remembered;
+        }
+        authRememberCheckboxEl.checked = remembered !== "";
     }
 
     clearErrors();
@@ -110,10 +118,9 @@ export function initLoginView(handleLoggedIn) {
 // chose "Remember username". An optional message (e.g. "your session has ended")
 // is shown above the button.
 export function resetLoginView(message) {
+    // Start blank; setMode("login") then fills in the remembered username, if any.
+    authUsernameInputEl.value = "";
     setMode("login");
-    const remembered = getRememberedUsername();
-    authUsernameInputEl.value = remembered;
-    authRememberCheckboxEl.checked = remembered !== "";
     authPasswordInputEl.value = "";
     if (message) {
         showError(null, message);

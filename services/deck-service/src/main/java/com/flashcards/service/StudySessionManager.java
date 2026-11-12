@@ -25,6 +25,13 @@ public class StudySessionManager {
     // the same time on different threads, and a plain HashMap can corrupt itself when
     // changed by several threads at once. This is application plumbing, not a data
     // structure under study; CardHashMap is the custom implementation used within each session.
+    //
+    // Known limits, accepted until study moves to the browser:
+    // - This protects the map, not the sessions inside it. Two simultaneous requests
+    //   from the SAME user on the same deck share one StudySession, whose heap is not
+    //   thread-safe. Different users never share a session.
+    // - Sessions are never removed, so memory grows with users x decks studied.
+    //   At scale: expire idle sessions, or keep study state outside the server.
     private final Map<SessionKey, StudySession> sessions = new ConcurrentHashMap<>();
 
     // Builds a fresh session for this user's deck, replacing any existing one.
