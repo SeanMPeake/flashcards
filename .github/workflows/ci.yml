@@ -16,9 +16,10 @@ jobs:
     name: Deck Service Build and Test
     runs-on: ubuntu-latest
 
+    # Runs from services/ so the parent pom.xml and shared modules are part of the build.
     defaults:
       run:
-        working-directory: services/deck-service
+        working-directory: services
 
     steps:
       - name: Check out repository
@@ -30,13 +31,14 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
-          cache-dependency-path: services/deck-service/pom.xml
+          cache-dependency-path: services/**/pom.xml
 
       - name: Make Maven wrapper executable
         run: chmod +x mvnw
 
+      # -pl = test this module; -am = also build the modules it depends on
       - name: Run deck service tests
-        run: ./mvnw clean test
+        run: ./mvnw -pl deck-service -am clean test
 
   user-service:
     name: User Service Build and Test
@@ -44,7 +46,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: services/user-service
+        working-directory: services
 
     steps:
       - name: Check out repository
@@ -56,13 +58,13 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
-          cache-dependency-path: services/user-service/pom.xml
+          cache-dependency-path: services/**/pom.xml
 
       - name: Make Maven wrapper executable
         run: chmod +x mvnw
 
       - name: Run user service tests
-        run: ./mvnw clean test
+        run: ./mvnw -pl user-service -am clean test
 
   deploy:
     name: Deploy to Railway

@@ -39,10 +39,16 @@ To stop: `Ctrl+C`, or `docker compose down`. To also wipe the database: `docker 
 
 ## Running Tests
 
-From a service's directory (e.g. `services/deck-service`):
+From the `services` directory, all services:
 
 ```
 ./mvnw test
+```
+
+One service (plus any shared modules it depends on):
+
+```
+./mvnw -pl user-service -am test
 ```
 
 ## Project Structure
@@ -52,6 +58,7 @@ flashcards/
 ├── frontend/                 HTML, CSS, JS modules (served by the gateway)
 ├── gateway/                  nginx config: serves frontend, routes /api/ to services
 ├── services/                 One folder per microservice
+│   ├── pom.xml               Parent build: shared versions, builds all modules
 │   ├── deck-service/         Spring Boot: decks, cards, study mode
 │   │   ├── Dockerfile
 │   │   └── src/
