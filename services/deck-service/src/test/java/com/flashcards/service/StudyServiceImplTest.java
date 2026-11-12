@@ -120,6 +120,7 @@ class StudyServiceImplTest {
         given(deckRepository.existsByIdAndOwnerUserId(DECK, USER)).willReturn(true);
         given(sessionManager.getSession(USER, DECK)).willReturn(session);
         given(cardRepository.findById(1L)).willReturn(Optional.of(viewed));
+        given(session.findCard(1L)).willReturn(viewed);
         given(session.reschedule(1L, 1, false)).willReturn(31);
         given(cardRepository.save(viewed)).willReturn(viewed);
         given(session.nextNode()).willReturn(nextNode);
@@ -129,6 +130,58 @@ class StudyServiceImplTest {
 
         assertEquals(2L, result.getId());
         assertEquals("What is JRE?", result.getFrontText());
+    }
+
+    @Test
+    @DisplayName("nextCard rebuilds the session when the card was added after the session started")
+    void nextCardRebuildsSessionForCardAddedMidSession() throws Exception {
+        Card added = makeCard(9L, DECK, "New card", "Added in another tab", 4);
+        Card next = makeCard(2L, DECK, "What is JRE?", "Java Runtime Environment.", 2);
+        List<Card> current = List.of(added, next);
+
+        StudySession stale = mock(StudySession.class);
+        StudySession rebuilt = mock(StudySession.class);
+
+        given(deckRepository.existsByIdAndOwnerUserId(DECK, USER)).willReturn(true);
+        given(sessionManager.getSession(USER, DECK)).willReturn(stale);
+        given(cardRepository.findById(9L)).willReturn(Optional.of(added));
+        given(stale.findCard(9L)).willReturn(null);   // not in the old session
+        given(cardRepository.findByDeckId(DECK)).willReturn(current);
+        given(sessionManager.createSession(USER, DECK, current)).willReturn(rebuilt);
+        given(rebuilt.reschedule(9L, 4, false)).willReturn(10);
+        given(cardRepository.save(added)).willReturn(added);
+        given(rebuilt.nextNode()).willReturn(new MinHeap.HeapNode(2, 2L));
+        given(rebuilt.findCard(2L)).willReturn(next);
+
+        CardResponse result = studyService.nextCard(USER, DECK, request(9L));
+
+        assertEquals(2L, result.getId());
+        then(stale).should(never()).reschedule(anyLong(), anyInt(), anyBoolean());
+    }
+
+    @Test
+    @DisplayName("nextCard uses the card's stored priority, ignoring the priority in the request")
+    void nextCardIgnoresRequestPriority() throws Exception {
+        Card viewed = makeCard(1L, DECK, "What is JVM?", "Java Virtual Machine.", 5);
+        Card next = makeCard(2L, DECK, "What is JRE?", "Java Runtime Environment.", 2);
+        StudySession session = mock(StudySession.class);
+
+        NextCardRequest tampered = request(1L);
+        tampered.setPriority(-999);   // a client trying to jump the card to the front
+
+        given(deckRepository.existsByIdAndOwnerUserId(DECK, USER)).willReturn(true);
+        given(sessionManager.getSession(USER, DECK)).willReturn(session);
+        given(cardRepository.findById(1L)).willReturn(Optional.of(viewed));
+        given(session.findCard(1L)).willReturn(viewed);
+        given(session.reschedule(1L, 5, false)).willReturn(17);
+        given(cardRepository.save(viewed)).willReturn(viewed);
+        given(session.nextNode()).willReturn(new MinHeap.HeapNode(2, 2L));
+        given(session.findCard(2L)).willReturn(next);
+
+        studyService.nextCard(USER, DECK, tampered);
+
+        // Rescheduled from the stored priority 5, never from -999.
+        then(session).should().reschedule(1L, 5, false);
     }
 
     @Test
@@ -204,6 +257,7 @@ class StudyServiceImplTest {
         given(deckRepository.existsByIdAndOwnerUserId(DECK, USER)).willReturn(true);
         given(sessionManager.getSession(USER, DECK)).willReturn(session);
         given(cardRepository.findById(1L)).willReturn(Optional.of(viewed));
+        given(session.findCard(1L)).willReturn(viewed);
         given(session.reschedule(1L, 1, false)).willReturn(13);
         given(cardRepository.save(viewed)).willReturn(viewed);
         given(session.nextNode()).willReturn(nextNode);
@@ -226,6 +280,7 @@ class StudyServiceImplTest {
         given(deckRepository.existsByIdAndOwnerUserId(DECK, USER)).willReturn(true);
         given(sessionManager.getSession(USER, DECK)).willReturn(session);
         given(cardRepository.findById(1L)).willReturn(Optional.of(viewed));
+        given(session.findCard(1L)).willReturn(viewed);
         given(session.reschedule(1L, 1, false)).willReturn(31);
         given(cardRepository.save(any())).willReturn(viewed);
         given(session.nextNode()).willReturn(node);

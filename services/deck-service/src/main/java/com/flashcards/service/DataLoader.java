@@ -6,7 +6,6 @@ import com.flashcards.repository.CardRepository;
 import com.flashcards.repository.DeckRepository;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -33,9 +32,9 @@ public class DataLoader {
         this.cardRepository = cardRepository;
     }
 
-    // Seeds the sample decks for this user if they have none. Runs in its own
-    // transaction (REQUIRES_NEW) because it is called from the read-only deck list.
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    // Seeds the sample decks for this user if they have none, in one transaction:
+    // the three decks and their cards are saved together or not at all.
+    @Transactional
     public void seedSampleDecksIfEmpty(Long ownerUserId) {
         // Already has decks (seeded before, or created by the user): nothing to do.
         if (deckRepository.existsByOwnerUserId(ownerUserId)) {

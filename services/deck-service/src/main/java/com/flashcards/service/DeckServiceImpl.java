@@ -31,10 +31,10 @@ public class DeckServiceImpl implements DeckService {
         this.sampleDecks = sampleDecks;
     }
 
-    // readOnly = true signals that no writes will occur, allowing the
-    // database to skip locking overhead and preventing accidental persistence.
-    // (The dev-only seed below writes in its own separate transaction.)
-    @Transactional(readOnly = true)
+    // Deliberately not @Transactional: the dev-only seed below runs (and commits) in
+    // its own transaction first, and the summary query then runs in the repository's
+    // own read transaction. Wrapping both would hold one database connection while
+    // waiting for a second, which can exhaust the connection pool under load.
     @Override
     public List<DeckSummaryResponse> getDecks(Long userId) {
         DataLoader loader = sampleDecks.getIfAvailable();

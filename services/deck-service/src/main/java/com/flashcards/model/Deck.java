@@ -7,7 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "decks")
+// The index lets the database find one user's decks directly; every deck query
+// filters by owner_user_id.
+@Table(name = "decks", indexes = @Index(name = "idx_decks_owner_user_id", columnList = "owner_user_id"))
 public class Deck {
 
     @Id

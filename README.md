@@ -37,6 +37,10 @@ This starts four containers: PostgreSQL, the deck service, the user service, and
 
 To stop: `Ctrl+C`, or `docker compose down`. To also wipe the database: `docker compose down -v`.
 
+After pulling changes that alter a table (for example a new required column), run `docker compose down -v` once before starting again: tables are created and updated automatically at startup, but a required column cannot be added to rows that already exist.
+
+In local development every account gets three sample decks the first time it opens its deck list (the `dev` profile set in `docker-compose.yml`). Real deployments run without that profile, so new users start with no decks.
+
 ## Running Tests
 
 From the `services` directory, all services:
