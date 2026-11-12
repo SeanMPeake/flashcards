@@ -5,3 +5,7 @@
 -- User service
 CREATE ROLE user_svc LOGIN PASSWORD 'user_svc';   -- local development only
 CREATE SCHEMA users AUTHORIZATION user_svc;
+
+-- Deck service
+CREATE ROLE content_svc LOGIN PASSWORD 'content_svc';   -- local development only
+CREATE SCHEMA content AUTHORIZATION content_svc;

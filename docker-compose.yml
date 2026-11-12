@@ -19,9 +19,9 @@ services:
       dockerfile: deck-service/Dockerfile
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flashcards
-      SPRING_DATASOURCE_USERNAME: flashcards
-      SPRING_DATASOURCE_PASSWORD: flashcards
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flashcards?currentSchema=content
+      SPRING_DATASOURCE_USERNAME: content_svc
+      SPRING_DATASOURCE_PASSWORD: content_svc
     depends_on:
       postgres:
         condition: service_healthy   # wait until Postgres accepts connections
