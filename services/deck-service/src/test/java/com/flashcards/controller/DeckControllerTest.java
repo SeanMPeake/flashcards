@@ -15,7 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -77,7 +77,7 @@ class DeckControllerTest {
     @Test
     @DisplayName("GET /api/decks/{id} returns deck when found")
     void getDeckByIdReturnsDeck() throws Exception {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         CardResponse card = new CardResponse(1L, "What does SQL stand for?", "Structured Query Language.", 1);
         DeckResponse deck = new DeckResponse(1L, "SQL Basics", "Intro database review", now, now, 1, List.of(card));
@@ -118,7 +118,7 @@ class DeckControllerTest {
     @Test
     @DisplayName("POST /api/decks creates deck and returns 201")
     void createDeckReturnsCreatedDeck() throws Exception {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         DeckResponse created = new DeckResponse(1L, "Java Basics", "Core Java review cards", now, now, 0, List.of());
 
         given(deckService.createDeck(eq(1L), any())).willReturn(created);
@@ -135,7 +135,7 @@ class DeckControllerTest {
     @Test
     @DisplayName("PUT /api/decks/{id} updates deck and returns 200")
     void updateDeckReturnsUpdatedDeck() throws Exception {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         DeckResponse updated = new DeckResponse(1L, "Updated Name", "Updated description", now, now, 0, List.of());
 
         given(deckService.updateDeck(eq(1L), eq(1L), any())).willReturn(updated);

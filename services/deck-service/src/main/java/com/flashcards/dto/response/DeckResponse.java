@@ -1,6 +1,6 @@
 package com.flashcards.dto.response;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 public class DeckResponse {
@@ -8,16 +8,16 @@ public class DeckResponse {
     private Long id;
     private String name;
     private String description;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
     private int cardCount;
     private List<CardResponse> cards;
 
     public DeckResponse() {
     }
 
-    public DeckResponse(Long id, String name, String description, LocalDateTime createdAt,
-                        LocalDateTime updatedAt, int cardCount, List<CardResponse> cards) {
+    public DeckResponse(Long id, String name, String description, Instant createdAt,
+                        Instant updatedAt, int cardCount, List<CardResponse> cards) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -39,11 +39,11 @@ public class DeckResponse {
         return description;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
-    public LocalDateTime getUpdatedAt() {
+    public Instant getUpdatedAt() {
         return updatedAt;
     }
 

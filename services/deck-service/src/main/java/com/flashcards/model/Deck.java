@@ -1,7 +1,7 @@
 package com.flashcards.model;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,10 +29,10 @@ public class Deck {
     private String description;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
     // A deck owns many cards. The Jackson reference annotation helps prevent
     // infinite recursion if entity objects are serialized directly to JSON.
@@ -60,14 +60,14 @@ public class Deck {
     // Set timestamps automatically on first save. updatedAt is also kept in sync on any subsequent update.
     @PrePersist
     private void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         this.createdAt = now;
         this.updatedAt = now;
     }
 
     @PreUpdate
     private void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = Instant.now();
     }
 
     public Long getId() {
@@ -94,11 +94,11 @@ public class Deck {
         this.description = description;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
-    public LocalDateTime getUpdatedAt() {
+    public Instant getUpdatedAt() {
         return updatedAt;
     }
 
