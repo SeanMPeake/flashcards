@@ -14,7 +14,9 @@ services:
       retries: 10
 
   deck-service:
-    build: ./services/deck-service
+    build:
+      context: ./services          # the whole services/ folder, so shared modules are visible
+      dockerfile: deck-service/Dockerfile
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flashcards
@@ -25,7 +27,9 @@ services:
         condition: service_healthy   # wait until Postgres accepts connections
 
   user-service:
-    build: ./services/user-service
+    build:
+      context: ./services
+      dockerfile: user-service/Dockerfile
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flashcards?currentSchema=users
