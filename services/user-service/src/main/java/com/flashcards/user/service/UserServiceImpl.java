@@ -12,10 +12,14 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 @Service
 public class UserServiceImpl implements UserService {
+
+    // BCrypt only works on the first 72 bytes of a password.
+    private static final int MAX_BCRYPT_BYTES = 72;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -50,12 +54,23 @@ public class UserServiceImpl implements UserService {
         } catch (DataIntegrityViolationException e) {
             // Two signups for the same name at the same moment can both pass the
             // check above; the database's unique constraint rejects the second one.
-            throw new UsernameTakenException();
+            // Only report "taken" if the name really exists now; any other constraint
+            // failure is a real error and is passed on rather than disguised.
+            if (userRepository.existsByUsernameNormalized(normalized)) {
+                throw new UsernameTakenException();
+            }
+            throw e;
         }
     }
 
     @Override
     public LoginResponse login(LoginRequest request) {
+        // BCrypt can't check passwords over 72 bytes (it throws), and every stored
+        // password is at most 64 characters, so anything longer is simply wrong.
+        if (request.getPassword().getBytes(StandardCharsets.UTF_8).length > MAX_BCRYPT_BYTES) {
+            throw new InvalidCredentialsException();
+        }
+
         User user = userRepository.findByUsernameNormalized(normalize(request.getUsername()))
                 .orElse(null);
 
@@ -77,9 +92,10 @@ public class UserServiceImpl implements UserService {
                 new UserResponse(user.getId(), user.getUsername()));
     }
 
-    // Locale.ROOT keeps lowercasing the same on every machine, regardless of
-    // the server's language settings.
+    // Trims surrounding spaces (signup never allows spaces, so this can't make two
+    // names collide) and lowercases. Locale.ROOT keeps lowercasing the same on every
+    // machine, regardless of the server's language settings.
     private String normalize(String username) {
-        return username.toLowerCase(Locale.ROOT);
+        return username.trim().toLowerCase(Locale.ROOT);
     }
 }

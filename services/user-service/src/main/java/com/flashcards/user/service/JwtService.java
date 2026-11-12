@@ -1,13 +1,12 @@
 package com.flashcards.user.service;
 
+import com.flashcards.common.security.JwtKeys;
 import com.flashcards.user.model.User;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
@@ -23,12 +22,15 @@ public class JwtService {
 
     public JwtService(@Value("${jwt.secret}") String secret,
                       @Value("${jwt.expiration-hours}") long expirationHours) {
-        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
-        // HS256 requires a key of at least 256 bits; refuse to start with a weaker one.
-        if (keyBytes.length < 32) {
-            throw new IllegalStateException("jwt.secret must be at least 32 bytes");
+        // Built by the same shared method the verifier uses, so signer and verifier
+        // can never disagree on the key. Refuses a missing or too-short secret.
+        this.key = JwtKeys.fromSecret(secret);
+
+        // A lifetime of 0 or less would issue tokens that are already expired,
+        // logging every user out at once; refuse to start instead.
+        if (expirationHours < 1) {
+            throw new IllegalStateException("jwt.expiration-hours must be at least 1");
         }
-        this.key = Keys.hmacShaKeyFor(keyBytes);
         this.lifetime = Duration.ofHours(expirationHours);
     }
 

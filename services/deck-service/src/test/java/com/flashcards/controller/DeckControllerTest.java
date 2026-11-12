@@ -180,6 +180,25 @@ class DeckControllerTest {
     }
 
     @Test
+    @DisplayName("Malformed JSON returns 400, not 500")
+    void malformedJsonReturnsBadRequest() throws Exception {
+        mockMvc.perform(post("/api/decks")
+                        .requestAttr(JwtAuthFilter.AUTHENTICATED_USER, USER)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    @DisplayName("A non-numeric deck id returns 400, not 500")
+    void nonNumericIdReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/decks/abc").requestAttr(JwtAuthFilter.AUTHENTICATED_USER, USER))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid value for id."));
+    }
+
+    @Test
     @DisplayName("DELETE /api/decks/{id} returns 404 when deck is not found")
     void deleteDeckReturnsNotFound() throws Exception {
         willThrow(new DeckNotFoundException(999L)).given(deckService).deleteDeck(1L, 999L);

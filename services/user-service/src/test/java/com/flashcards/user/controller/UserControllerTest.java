@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -188,6 +189,47 @@ class UserControllerTest {
                 .andExpect(status().isBadRequest());
 
         then(userService).should(never()).login(any());
+    }
+
+    @Test
+    @DisplayName("An empty username always reports the most basic rule first")
+    void emptyUsernameReportsRequiredFirst() throws Exception {
+        // "" breaks @NotBlank, @Size and @Pattern at once; the message must not vary.
+        for (int i = 0; i < 5; i++) {
+            mockMvc.perform(post("/api/users/signup")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body("", VALID_PASSWORD)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("username must not be blank"));
+        }
+    }
+
+    @Test
+    @DisplayName("Malformed JSON returns 400, not 500")
+    void malformedJsonReturnsBadRequest() throws Exception {
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    @DisplayName("A wrong Content-Type returns 415, not 500")
+    void wrongContentTypeReturnsUnsupportedMediaType() throws Exception {
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content("hello"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.status").value(415));
+    }
+
+    @Test
+    @DisplayName("A wrong HTTP method returns 405, not 500")
+    void wrongMethodReturnsMethodNotAllowed() throws Exception {
+        mockMvc.perform(get("/api/users/signup"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.status").value(405));
     }
 
     @Test

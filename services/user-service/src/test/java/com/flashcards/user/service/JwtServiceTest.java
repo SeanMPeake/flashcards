@@ -64,4 +64,11 @@ class JwtServiceTest {
     void rejectsShortSecret() {
         assertThrows(IllegalStateException.class, () -> new JwtService("too-short", 24));
     }
+
+    @Test
+    @DisplayName("Service refuses to start with a token lifetime under 1 hour")
+    void rejectsNonPositiveLifetime() {
+        assertThrows(IllegalStateException.class, () -> new JwtService(TEST_SECRET, 0));
+        assertThrows(IllegalStateException.class, () -> new JwtService(TEST_SECRET, -5));
+    }
 }
