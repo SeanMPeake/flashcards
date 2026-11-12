@@ -59,6 +59,7 @@ flashcards/
 ├── gateway/                  nginx config: serves frontend, routes /api/ to services
 ├── services/                 One folder per microservice
 │   ├── pom.xml               Parent build: shared versions, builds all modules
+│   ├── common/               Shared library: JWT validation (contracts only, no business logic)
 │   ├── deck-service/         Spring Boot: decks, cards, study mode
 │   │   ├── Dockerfile
 │   │   └── src/

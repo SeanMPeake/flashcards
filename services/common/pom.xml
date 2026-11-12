@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Shared library used by the services. It holds contracts only (JWT validation now,
+  event classes later) and no business logic. It is a plain jar: it does not run
+  on its own; each service that depends on it gets a copy built in.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<!-- Shared settings (Java and library versions) come from services/pom.xml -->
+	<parent>
+		<groupId>com.flashcards</groupId>
+		<artifactId>services</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
+	<artifactId>common</artifactId>
+	<name>common</name>
+	<description>Shared contracts for the services: JWT validation</description>
+
+	<dependencies>
+		<!-- JWT verification (jjwt): the API we call, its implementation, and Gson for JSON -->
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-api</artifactId>
+			<version>${jjwt.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-impl</artifactId>
+			<version>${jjwt.version}</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-gson</artifactId>
+			<version>${jjwt.version}</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<!-- No spring-boot-maven-plugin: this is a library, so it builds as a plain jar,
+	     not a runnable application. -->
+
+</project>
