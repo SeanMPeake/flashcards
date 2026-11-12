@@ -1,4 +1,6 @@
 import {
+    sessionBarEl,
+    authViewEl,
     welcomeViewEl,
     deckSelectionViewEl,
     studyViewEl,
@@ -11,6 +13,10 @@ import {
 
 // Only one main screen should be visible at a time.
 export function showView(viewName) {
+    // The session bar (username, Home, Log out) shows on every screen except login.
+    sessionBarEl.classList.toggle("hidden", viewName === "auth");
+
+    authViewEl.classList.add("hidden");
     welcomeViewEl.classList.add("hidden");
     deckSelectionViewEl.classList.add("hidden");
     studyViewEl.classList.add("hidden");
@@ -18,7 +24,9 @@ export function showView(viewName) {
     createDeckViewEl.classList.add("hidden");
     editViewEl.classList.add("hidden");
 
-    if (viewName === "welcome") {
+    if (viewName === "auth") {
+        authViewEl.classList.remove("hidden");
+    } else if (viewName === "welcome") {
         welcomeViewEl.classList.remove("hidden");
     } else if (viewName === "deckSelection") {
         deckSelectionViewEl.classList.remove("hidden");

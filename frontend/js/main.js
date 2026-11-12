@@ -1,5 +1,10 @@
-import { fetchDeckSummaries } from "./api.js";
+import { fetchDeckSummaries, setUnauthorizedHandler } from "./api.js";
+import { clearSession, getUsername, isLoggedIn } from "./auth.js";
+import { initLoginView, resetLoginView } from "./login.js";
 import {
+    sessionUsernameEl,
+    homeButtonEl,
+    logoutButtonEl,
     studyModeButtonEl,
     editModeButtonEl,
     backToHomeButtonEl,
@@ -20,6 +25,7 @@ import {
 } from "./dom.js";
 import { clearDeckList, renderDeckList, setDeckListStatus, showView } from "./view.js";
 import {
+    clearSelectedDeck,
     flipCard,
     renderStudyView,
     setSelectedDeck,
@@ -38,6 +44,35 @@ import {
     loadEditDeckSummaries,
     onDeckSelected
 } from "./edit.js";
+
+// — Login session —
+
+// Shows the home screen with the logged-in user's name in the session bar.
+function showHome() {
+    sessionUsernameEl.textContent = getUsername();
+    showView("welcome");
+}
+
+// Shows the login screen, optionally with a message (e.g. after a session ends).
+function showLogin(message) {
+    clearSelectedDeck();
+    renderStudyView();
+    resetLoginView(message);
+    showView("auth");
+}
+
+initLoginView(showHome);
+
+homeButtonEl.addEventListener("click", showHome);
+
+logoutButtonEl.addEventListener("click", () => {
+    clearSession();
+    showLogin();
+});
+
+// Any deck or study request that comes back 401 means the token is missing or
+// expired: return to the login screen.
+setUnauthorizedHandler(() => showLogin("Your session has ended. Please log in again."));
 
 // The deck selection screen only needs summary data, not full card payloads.
 async function loadDeckSummaries() {
@@ -140,5 +175,10 @@ flashcardEl.addEventListener("click", flipCard);
 prevButtonEl.addEventListener("click", showPreviousCard);
 nextButtonEl.addEventListener("click", async () => await showNextCard());
 
+// On page load: a valid saved login goes straight home; otherwise log in.
 renderStudyView();
-showView("welcome");
+if (isLoggedIn()) {
+    showHome();
+} else {
+    showLogin();
+}
