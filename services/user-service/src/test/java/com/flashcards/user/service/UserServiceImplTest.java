@@ -101,10 +101,24 @@ class UserServiceImplTest {
     @Test
     @DisplayName("Signup reports a taken username when the database unique constraint fires")
     void handlesDatabaseRace() {
+        // Free at the first check; taken by the time the insert lands.
+        given(userRepository.existsByUsernameNormalized("seanpeake")).willReturn(false, true);
         given(userRepository.saveAndFlush(any(User.class)))
                 .willThrow(new DataIntegrityViolationException("duplicate key"));
 
         assertThrows(UsernameTakenException.class,
+                () -> userService.signup(new SignupRequest("SeanPeake", "Secret_pass1")));
+    }
+
+    @Test
+    @DisplayName("Signup passes on other database errors instead of calling them 'taken'")
+    void otherConstraintErrorsAreNotReportedAsTaken() {
+        // The name is free before and after: the failure is something else.
+        given(userRepository.existsByUsernameNormalized("seanpeake")).willReturn(false);
+        given(userRepository.saveAndFlush(any(User.class)))
+                .willThrow(new DataIntegrityViolationException("value too long"));
+
+        assertThrows(DataIntegrityViolationException.class,
                 () -> userService.signup(new SignupRequest("SeanPeake", "Secret_pass1")));
     }
 
@@ -135,6 +149,27 @@ class UserServiceImplTest {
         LoginResponse response = userService.login(new LoginRequest("SEANpeake", "Secret_pass1"));
 
         assertEquals("SeanPeake", response.getUser().getUsername());
+    }
+
+    @Test
+    @DisplayName("Login ignores spaces around the username")
+    void loginTrimsUsername() {
+        given(userRepository.findByUsernameNormalized("seanpeake"))
+                .willReturn(Optional.of(storedUser("SeanPeake", "Secret_pass1")));
+
+        LoginResponse response = userService.login(new LoginRequest("  SeanPeake ", "Secret_pass1"));
+
+        assertEquals("SeanPeake", response.getUser().getUsername());
+    }
+
+    @Test
+    @DisplayName("Login treats a password over 72 bytes as wrong credentials, not a server error")
+    void loginRejectsOverlongPassword() {
+        String overlong = "A1_" + "a".repeat(97);   // 100 bytes; BCrypt would throw
+
+        assertThrows(InvalidCredentialsException.class,
+                () -> userService.login(new LoginRequest("SeanPeake", overlong)));
+        then(userRepository).should(never()).findByUsernameNormalized(anyString());
     }
 
     @Test

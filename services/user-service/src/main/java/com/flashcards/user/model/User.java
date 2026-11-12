@@ -1,7 +1,7 @@
 package com.flashcards.user.model;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "users")
@@ -26,7 +26,7 @@ public class User {
     private String passwordHash;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     public User() {
     }
@@ -48,7 +48,7 @@ public class User {
 
     @PrePersist
     private void onCreate() {
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = Instant.now();
     }
 
     public Long getId() {
@@ -67,7 +67,7 @@ public class User {
         return passwordHash;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 }
