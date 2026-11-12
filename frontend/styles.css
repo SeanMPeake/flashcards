@@ -516,6 +516,22 @@ h2 {
     color: #b3261e;
 }
 
+.remember-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+/* These two set display: flex after the general .hidden rule, so they need a
+   more specific rule for .hidden to actually hide them. */
+.session-bar.hidden,
+.remember-label.hidden {
+    display: none;
+}
+
 .auth-actions {
     margin-top: 24px;
 }
