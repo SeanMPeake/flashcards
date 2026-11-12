@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class CardHashMapTest {
 
     private Card makeCard(Long id, String frontText, int priority) throws Exception {
-        Deck deck = new Deck("Test", null);
+        Deck deck = new Deck(1L, "Test", null);
         Card card = new Card(deck, frontText, "back", priority);
         setId(card, id);
         return card;

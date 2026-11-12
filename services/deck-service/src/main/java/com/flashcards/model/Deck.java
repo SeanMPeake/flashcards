@@ -14,6 +14,13 @@ public class Deck {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // The user who owns this deck: the id from their login token. A plain number
+    // rather than a foreign key, because the users table lives in the user
+    // service's schema, which this service cannot read. Cards belong to a deck,
+    // so they are owned through it.
+    @Column(name = "owner_user_id", nullable = false)
+    private Long ownerUserId;
+
     @Column(nullable = false)
     private String name;
 
@@ -36,10 +43,14 @@ public class Deck {
     public Deck() {
     }
 
-    public Deck(String name, String description) {
+    public Deck(Long ownerUserId, String name, String description) {
+        if (ownerUserId == null) {
+            throw new IllegalArgumentException("ownerUserId must not be null");
+        }
         if (name == null) {
             throw new IllegalArgumentException("name must not be null");
         }
+        this.ownerUserId = ownerUserId;
         this.name = name;
         this.description = description;
     }
@@ -59,6 +70,10 @@ public class Deck {
 
     public Long getId() {
         return id;
+    }
+
+    public Long getOwnerUserId() {
+        return ownerUserId;
     }
 
     public String getName() {

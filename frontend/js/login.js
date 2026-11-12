@@ -1,5 +1,5 @@
 import { signup, login } from "./api.js";
-import { saveSession } from "./auth.js";
+import { getRememberedUsername, saveSession, setRememberedUsername } from "./auth.js";
 import {
     authTitleEl,
     authFormEl,
@@ -9,6 +9,8 @@ import {
     authPasswordInputEl,
     authPasswordHintEl,
     authPasswordErrorEl,
+    authRememberLabelEl,
+    authRememberCheckboxEl,
     authFormErrorEl,
     authSubmitButtonEl,
     authSwitchTextEl,
@@ -35,6 +37,16 @@ function setMode(newMode) {
     // hint about what a valid username looks like.
     authUsernameHintEl.classList.toggle("hidden", !isSignup);
     authPasswordHintEl.classList.toggle("hidden", !isSignup);
+
+    // "Remember username" only applies to logging in.
+    authRememberLabelEl.classList.toggle("hidden", isSignup);
+
+    // A new account always starts with a blank form, so a previous user's
+    // name is never carried over.
+    if (isSignup) {
+        authUsernameInputEl.value = "";
+        authPasswordInputEl.value = "";
+    }
 
     clearErrors();
 }
@@ -74,6 +86,9 @@ async function handleSubmit(event) {
         }
         // After signup, log straight in with the same details.
         saveSession(await login(username, password));
+        if (mode === "login") {
+            setRememberedUsername(authRememberCheckboxEl.checked ? username : "");
+        }
         authPasswordInputEl.value = "";
         onLoggedIn();
     } catch (error) {
@@ -91,10 +106,14 @@ export function initLoginView(handleLoggedIn) {
     });
 }
 
-// Resets the screen to login mode. An optional message (e.g. "your session has
-// ended") is shown above the button.
+// Resets the screen to login mode, pre-filling the username only if the user
+// chose "Remember username". An optional message (e.g. "your session has ended")
+// is shown above the button.
 export function resetLoginView(message) {
     setMode("login");
+    const remembered = getRememberedUsername();
+    authUsernameInputEl.value = remembered;
+    authRememberCheckboxEl.checked = remembered !== "";
     authPasswordInputEl.value = "";
     if (message) {
         showError(null, message);

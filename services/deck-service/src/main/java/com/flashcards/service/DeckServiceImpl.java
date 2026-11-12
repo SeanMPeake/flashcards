@@ -9,6 +9,7 @@ import com.flashcards.exception.DeckNotFoundException;
 import com.flashcards.model.Card;
 import com.flashcards.model.Deck;
 import com.flashcards.repository.DeckRepository;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,40 +22,46 @@ public class DeckServiceImpl implements DeckService {
 
     private final DeckRepository deckRepository;
 
-    public DeckServiceImpl(DeckRepository deckRepository) {
+    // The dev-only sample-deck seeder. ObjectProvider lets this service work whether
+    // or not it exists: in production (no "dev" profile) there is none.
+    private final ObjectProvider<DataLoader> sampleDecks;
+
+    public DeckServiceImpl(DeckRepository deckRepository, ObjectProvider<DataLoader> sampleDecks) {
         this.deckRepository = deckRepository;
+        this.sampleDecks = sampleDecks;
     }
 
     // readOnly = true signals that no writes will occur, allowing the
     // database to skip locking overhead and preventing accidental persistence.
+    // (The dev-only seed below writes in its own separate transaction.)
     @Transactional(readOnly = true)
     @Override
-    public List<DeckSummaryResponse> getDecks() {
-        return deckRepository.findDeckSummaries();
+    public List<DeckSummaryResponse> getDecks(Long userId) {
+        DataLoader loader = sampleDecks.getIfAvailable();
+        if (loader != null) {
+            loader.seedSampleDecksIfEmpty(userId);
+        }
+        return deckRepository.findDeckSummaries(userId);
     }
 
     @Transactional(readOnly = true)
     @Override
-    public DeckResponse getDeckById(Long id) {
-        Deck deck = deckRepository.findById(id)
-                .orElseThrow(() -> new DeckNotFoundException(id));
-
-        return toResponse(deck);
+    public DeckResponse getDeckById(Long userId, Long id) {
+        return toResponse(requireOwnedDeck(userId, id));
     }
 
     @Transactional
     @Override
-    public DeckResponse createDeck(CreateDeckRequest request) {
-        Deck deck = new Deck(request.getName(), request.getDescription());
-        
+    public DeckResponse createDeck(Long userId, CreateDeckRequest request) {
+        Deck deck = new Deck(userId, request.getName(), request.getDescription());
+
         return toResponse(deckRepository.save(deck));
     }
 
     @Transactional
     @Override
-    public DeckResponse updateDeck(Long id, UpdateDeckRequest request) {
-        Deck deck = deckRepository.findById(id)
-                .orElseThrow(() -> new DeckNotFoundException(id));
+    public DeckResponse updateDeck(Long userId, Long id, UpdateDeckRequest request) {
+        Deck deck = requireOwnedDeck(userId, id);
 
         deck.setName(request.getName());
         deck.setDescription(request.getDescription());
@@ -64,11 +71,18 @@ public class DeckServiceImpl implements DeckService {
 
     @Transactional
     @Override
-    public void deleteDeck(Long id) {
-        if (!deckRepository.existsById(id)) {
+    public void deleteDeck(Long userId, Long id) {
+        if (!deckRepository.existsByIdAndOwnerUserId(id, userId)) {
             throw new DeckNotFoundException(id);
         }
         deckRepository.deleteById(id);
+    }
+
+    // Loads a deck only if this user owns it. Another user's deck is reported
+    // as not found (404), so its existence is never revealed.
+    private Deck requireOwnedDeck(Long userId, Long id) {
+        return deckRepository.findByIdAndOwnerUserId(id, userId)
+                .orElseThrow(() -> new DeckNotFoundException(id));
     }
 
     // Builds the full deck response used by the single-deck endpoint,

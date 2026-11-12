@@ -53,6 +53,31 @@ export function isLoggedIn() {
     return getSession() !== null;
 }
 
+// "Remember username" on the login screen. Only the username is kept, never the
+// password, and it is kept separately from the session so it survives logout.
+const REMEMBERED_USERNAME_KEY = "flashcards.rememberedUsername";
+
+export function getRememberedUsername() {
+    try {
+        return localStorage.getItem(REMEMBERED_USERNAME_KEY) || "";
+    } catch {
+        return "";
+    }
+}
+
+// Saves the username, or forgets it when given an empty value.
+export function setRememberedUsername(username) {
+    try {
+        if (username) {
+            localStorage.setItem(REMEMBERED_USERNAME_KEY, username);
+        } else {
+            localStorage.removeItem(REMEMBERED_USERNAME_KEY);
+        }
+    } catch {
+        // Storage unavailable: nothing is remembered.
+    }
+}
+
 export function clearSession() {
     try {
         localStorage.removeItem(STORAGE_KEY);
