@@ -16,10 +16,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
@@ -32,6 +35,7 @@ class StudyServiceImplTest {
     private static final Long USER = 1L;
     private static final Long OTHER_USER = 2L;
     private static final Long DECK = 1L;
+    private static final Long OTHER_DECK = 2L;
 
     @Mock
     private CardRepository cardRepository;
@@ -46,20 +50,27 @@ class StudyServiceImplTest {
         return new SavePrioritiesRequest(List.of(updates));
     }
 
+    // The cards passed to saveAll.
     @SuppressWarnings("unchecked")
     private List<Card> captureSaved() {
-        ArgumentCaptor<List<Card>> captor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<Iterable<Card>> captor = ArgumentCaptor.forClass(Iterable.class);
         then(cardRepository).should().saveAll(captor.capture());
-        return captor.getValue();
+        List<Card> saved = new ArrayList<>();
+        captor.getValue().forEach(saved::add);
+        return saved;
+    }
+
+    private void ownsDeckWithCards(Card... cards) {
+        given(deckRepository.existsByIdAndOwnerUserId(DECK, USER)).willReturn(true);
+        given(cardRepository.findAllById(anyIterable())).willReturn(List.of(cards));
     }
 
     @Test
-    @DisplayName("savePriorities updates the priorities of cards in the user's deck")
-    void savesPrioritiesForCardsInDeck() throws Exception {
-        Card first = card(1L, 1);
-        Card second = card(2L, 2);
-        given(deckRepository.existsByIdAndOwnerUserId(DECK, USER)).willReturn(true);
-        given(cardRepository.findByDeckId(DECK)).willReturn(List.of(first, second));
+    @DisplayName("savePriorities raises the priorities of cards in the user's deck")
+    void savesHigherPriorities() throws Exception {
+        Card first = card(1L, DECK, 1);
+        Card second = card(2L, DECK, 2);
+        ownsDeckWithCards(first, second);
 
         studyService.savePriorities(USER, DECK, request(new PriorityUpdate(1L, 13), new PriorityUpdate(2L, 8)));
 
@@ -69,36 +80,62 @@ class StudyServiceImplTest {
     }
 
     @Test
+    @DisplayName("savePriorities never lowers a priority (an older batch arriving late is ignored)")
+    void ignoresLowerPriority() throws Exception {
+        // Card 4 is already at 40 (newer save landed first); the late batch says 17.
+        Card card = card(4L, DECK, 40);
+        ownsDeckWithCards(card);
+
+        studyService.savePriorities(USER, DECK, request(new PriorityUpdate(4L, 17)));
+
+        assertEquals(40, card.getPriority());
+        assertTrue(captureSaved().isEmpty());
+    }
+
+    @Test
+    @DisplayName("A card listed twice in one batch keeps the highest value")
+    void duplicateCardKeepsHighest() throws Exception {
+        Card card = card(4L, DECK, 5);
+        ownsDeckWithCards(card);
+
+        studyService.savePriorities(USER, DECK, request(new PriorityUpdate(4L, 40), new PriorityUpdate(4L, 17)));
+
+        assertEquals(40, card.getPriority());
+        assertEquals(1, captureSaved().size());
+    }
+
+    @Test
     @DisplayName("savePriorities treats another user's deck as not found and changes nothing")
     void rejectsAnotherUsersDeck() {
         given(deckRepository.existsByIdAndOwnerUserId(DECK, OTHER_USER)).willReturn(false);
 
         assertThrows(DeckNotFoundException.class,
                 () -> studyService.savePriorities(OTHER_USER, DECK, request(new PriorityUpdate(1L, 99))));
-        then(cardRepository).should(never()).findByDeckId(any());
+        then(cardRepository).should(never()).findAllById(any());
         then(cardRepository).should(never()).saveAll(any());
     }
 
     @Test
-    @DisplayName("savePriorities skips card ids that aren't in the deck instead of failing")
+    @DisplayName("Card ids from another deck, or deleted ones, are skipped instead of failing")
     void skipsCardsNotInDeck() throws Exception {
-        // Card 7 was deleted mid-study, or belongs to some other deck.
-        Card inDeck = card(1L, 1);
-        given(deckRepository.existsByIdAndOwnerUserId(DECK, USER)).willReturn(true);
-        given(cardRepository.findByDeckId(DECK)).willReturn(List.of(inDeck));
+        Card inDeck = card(1L, DECK, 1);
+        Card elsewhere = card(7L, OTHER_DECK, 1);   // exists, but in a different deck
+        ownsDeckWithCards(inDeck, elsewhere);       // card 9 doesn't exist at all
 
-        studyService.savePriorities(USER, DECK, request(new PriorityUpdate(1L, 13), new PriorityUpdate(7L, 50)));
+        studyService.savePriorities(USER, DECK, request(
+                new PriorityUpdate(1L, 13), new PriorityUpdate(7L, 50), new PriorityUpdate(9L, 60)));
 
         assertEquals(13, inDeck.getPriority());
-        List<Card> saved = captureSaved();
+        assertEquals(1, elsewhere.getPriority());
+        Collection<Card> saved = captureSaved();
         assertEquals(1, saved.size());
-        assertSame(inDeck, saved.get(0));
+        assertTrue(saved.contains(inDeck));
     }
 
-    // A card with the given id and priority, belonging to the user's deck.
-    private Card card(Long id, int priority) throws Exception {
+    // A card with the given id and priority, belonging to the given deck.
+    private Card card(Long id, Long deckId, int priority) throws Exception {
         Deck deck = new Deck(USER, "Test", null);
-        setId(deck, DECK);
+        setId(deck, deckId);
         Card card = new Card(deck, "Q", "A", priority);
         setId(card, id);
         return card;

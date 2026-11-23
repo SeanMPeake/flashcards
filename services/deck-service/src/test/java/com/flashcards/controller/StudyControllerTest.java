@@ -73,6 +73,24 @@ class StudyControllerTest {
     }
 
     @Test
+    @DisplayName("A null entry in the batch returns 400, not 500")
+    void rejectsNullEntry() throws Exception {
+        putPriorities("{\"priorities\":[null]}")
+                .andExpect(status().isBadRequest());
+
+        then(studyService).should(never()).savePriorities(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("A priority above the upper bound returns 400")
+    void rejectsPriorityAboveMaximum() throws Exception {
+        putPriorities("{\"priorities\":[{\"cardId\":4,\"priority\":2147483647}]}")
+                .andExpect(status().isBadRequest());
+
+        then(studyService).should(never()).savePriorities(any(), any(), any());
+    }
+
+    @Test
     @DisplayName("Another user's deck returns 404")
     void returnsNotFoundForAnotherUsersDeck() throws Exception {
         willThrow(new DeckNotFoundException(1L)).given(studyService).savePriorities(eq(1L), eq(1L), any());

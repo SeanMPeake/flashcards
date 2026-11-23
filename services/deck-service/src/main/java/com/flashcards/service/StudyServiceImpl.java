@@ -8,9 +8,10 @@ import com.flashcards.repository.DeckRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -31,6 +32,12 @@ public class StudyServiceImpl implements StudyService {
     // aren't in the deck are skipped rather than failing the whole batch: a card
     // deleted in another tab mid-study must not make the save fail forever (the
     // browser would keep retrying it), and ids from other decks are never touched.
+    //
+    // A priority is never lowered. Each review only adds to a card's priority, so a
+    // lower value is always an older one: a batch that arrives late, a retried save,
+    // or a second tab studying the same deck. Keeping the highest value lets all of
+    // them merge correctly without timestamps (and the same rule settles a card
+    // listed twice in one batch).
     @Transactional
     @Override
     public void savePriorities(Long userId, Long deckId, SavePrioritiesRequest request) {
@@ -39,13 +46,18 @@ public class StudyServiceImpl implements StudyService {
             throw new DeckNotFoundException(deckId);
         }
 
-        Map<Long, Card> cardsInDeck = cardRepository.findByDeckId(deckId).stream()
+        // Load only the cards named in the batch, then keep the ones in this deck.
+        List<Long> requestedIds = request.getPriorities().stream()
+                .map(SavePrioritiesRequest.PriorityUpdate::getCardId)
+                .toList();
+        Map<Long, Card> cardsInDeck = cardRepository.findAllById(requestedIds).stream()
+                .filter(card -> card.getDeck().getId().equals(deckId))
                 .collect(Collectors.toMap(Card::getId, Function.identity()));
 
-        List<Card> changed = new ArrayList<>();
+        Set<Card> changed = new LinkedHashSet<>();
         for (SavePrioritiesRequest.PriorityUpdate update : request.getPriorities()) {
             Card card = cardsInDeck.get(update.getCardId());
-            if (card != null) {
+            if (card != null && update.getPriority() > card.getPriority()) {
                 card.setPriority(update.getPriority());
                 changed.add(card);
             }

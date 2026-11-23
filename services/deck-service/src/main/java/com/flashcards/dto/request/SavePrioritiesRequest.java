@@ -1,6 +1,7 @@
 package com.flashcards.dto.request;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -14,11 +15,11 @@ import java.util.List;
 // {"priorities":[{"cardId":4,"priority":17},{"cardId":9,"priority":23}]}
 public class SavePrioritiesRequest {
 
-    // @Valid checks each entry's own rules too. The size cap keeps one request bounded.
+    // @NotNull on the element type rejects null entries ([null]); @Valid checks each
+    // entry's own rules. The size cap keeps one request bounded.
     @NotEmpty
     @Size(max = 500)
-    @Valid
-    private List<PriorityUpdate> priorities;
+    private List<@NotNull @Valid PriorityUpdate> priorities;
 
     public SavePrioritiesRequest() {
     }
@@ -40,9 +41,12 @@ public class SavePrioritiesRequest {
         @NotNull
         private Long cardId;
 
-        // Priorities only ever grow from their starting values, so negatives are invalid.
+        // Priorities start at 1 and only grow, so negatives are invalid. The upper bound
+        // is far above any real value (each review adds the deck size) but keeps
+        // later "priority + deckSize" arithmetic well clear of integer overflow.
         @NotNull
         @PositiveOrZero
+        @Max(1_000_000_000)
         private Integer priority;
 
         public PriorityUpdate() {
