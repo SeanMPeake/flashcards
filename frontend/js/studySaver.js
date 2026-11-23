@@ -13,11 +13,14 @@ import { saveStatusEl } from "./dom.js";
 //
 // Batches: reviews collect in an open batch per deck. When a save starts, each open
 // batch is sealed: it gets a batchId and never changes again, so a retry sends
-// exactly the same batch with the same id. The deck service uses the batchId as the
-// StudyProgressSaved event's eventId, which lets consumers skip a batch they have
-// already counted. Reviews made while a batch is being retried go into a new batch.
+// exactly the same batch with the same id. The deck service builds the
+// StudyProgressSaved event's eventId from it, which lets consumers skip a batch they
+// have already counted. Reviews made while a batch is being retried go into a new
+// batch, and a batch is also sealed once it reaches MAX_BATCH_REVIEWS, so it always
+// stays within the server's size limit.
 
 const SAVE_EVERY = 5;           // cards reviewed between saves
+const MAX_BATCH_REVIEWS = 100;  // well under the server's limit of 500 per batch
 const FIRST_RETRY_MS = 1000;    // then 2s, 4s, 8s... up to the maximum
 const MAX_RETRY_MS = 30000;
 
@@ -93,6 +96,10 @@ export function recordPriority(deckId, sessionId, cardId, priority, flagged) {
     open.cardsReviewed++;
     if (flagged) {
         open.cardsFlagged++;
+    }
+    // A save in progress or a scheduled retry delays sealing, so cap the batch here.
+    if (open.cardsReviewed >= MAX_BATCH_REVIEWS) {
+        seal(deckId);
     }
     reviewsSinceSave++;
 

@@ -81,6 +81,17 @@ class StudyServiceImplTest {
     }
 
     @Test
+    @DisplayName("A card listed twice is offered both values; the raise-only update keeps the higher")
+    void duplicateCardOffersBothValues() {
+        given(deckRepository.existsByIdAndOwnerUserId(DECK, USER)).willReturn(true);
+
+        studyService.savePriorities(USER, DECK, request(2, 0, new PriorityUpdate(4L, 40), new PriorityUpdate(4L, 17)));
+
+        then(cardRepository).should().raisePriority(eq(DECK), eq(4L), eq(40), any());
+        then(cardRepository).should().raisePriority(eq(DECK), eq(4L), eq(17), any());
+    }
+
+    @Test
     @DisplayName("Stores a StudyProgressSaved event describing the batch in the outbox")
     void storesEventInOutbox() {
         given(deckRepository.existsByIdAndOwnerUserId(DECK, USER)).willReturn(true);
@@ -90,10 +101,11 @@ class StudyServiceImplTest {
         ArgumentCaptor<OutboxEvent> captor = ArgumentCaptor.forClass(OutboxEvent.class);
         then(outboxRepository).should().save(captor.capture());
         OutboxEvent row = captor.getValue();
-        assertEquals(BATCH.toString(), row.getEventId());
+        String expectedEventId = USER + ":" + BATCH;           // user + batch, so repeats can be skipped
+        assertEquals(expectedEventId, row.getEventId());
 
         StudyProgressSaved event = jsonMapper.readValue(row.getPayload(), StudyProgressSaved.class);
-        assertEquals(BATCH.toString(), event.eventId());    // the batch id, so repeats can be skipped
+        assertEquals(expectedEventId, event.eventId());
         assertEquals(USER, event.userId());
         assertEquals(DECK, event.deckId());
         assertEquals(SESSION.toString(), event.sessionId());

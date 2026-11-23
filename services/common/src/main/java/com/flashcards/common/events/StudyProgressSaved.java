@@ -9,8 +9,9 @@ import java.time.Instant;
 // additive only: fields may be added, never renamed or removed, and consumers read
 // only the fields they need (Tolerant Reader), so services can be updated independently.
 //
-// - eventId: unique per batch (the browser's batch id). A retried save reuses it, so a
-//   consumer that has already processed this eventId must skip it (idempotency).
+// - eventId: unique per batch ("userId:batchId", built by the deck service from the
+//   browser's batch id). A retried save reuses it, so a consumer that has already
+//   processed this eventId must skip it (idempotency).
 // - sessionId: groups the batches of one study session (one opening of a deck);
 //   a session's totals are the sum of its batches.
 // - cardsReviewed / cardsFlagged: counts for this batch only.

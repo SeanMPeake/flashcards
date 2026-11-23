@@ -46,8 +46,9 @@ public class StudyServiceImpl implements StudyService {
     // The event: it is stored in the outbox table in the same transaction as the
     // priorities, so both are saved or neither is. OutboxRelay sends it to RabbitMQ
     // in the background, so the broker being down never affects saving or studying.
-    // The browser's batchId becomes the eventId: if the browser re-sends a batch, the
-    // event is stored again with the same id, and consumers skip the repeat.
+    // The eventId is the user id plus the browser's batchId: if the browser re-sends a
+    // batch, the event is stored again with the same id, and consumers skip the repeat.
+    // Including the user id means one user's batch ids can never collide with another's.
     @Override
     @Transactional
     public void savePriorities(Long userId, Long deckId, SavePrioritiesRequest request) {
@@ -65,7 +66,7 @@ public class StudyServiceImpl implements StudyService {
         }
 
         StudyProgressSaved event = new StudyProgressSaved(
-                request.getBatchId().toString(),
+                userId + ":" + request.getBatchId(),
                 userId,
                 deckId,
                 request.getSessionId().toString(),

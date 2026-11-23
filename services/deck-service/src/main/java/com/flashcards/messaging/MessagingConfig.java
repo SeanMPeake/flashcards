@@ -2,8 +2,6 @@ package com.flashcards.messaging;
 
 import com.flashcards.common.events.StudyEvents;
 import org.springframework.amqp.core.FanoutExchange;
-import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
-import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -13,6 +11,12 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 // The deck service only declares the exchange it publishes to. It doesn't declare
 // any queues: each consuming service (Review Insights, Analytics) declares and binds
 // its own queue, so the publisher never needs to know who is listening.
+//
+// Known limitation (accepted): a fanout exchange stores nothing, so events published
+// while no queue is bound are dropped. A new consumer therefore receives events only
+// from the moment its queue first exists, not the history before it. Replaying
+// history would need a stream (e.g. a RabbitMQ stream or Kafka) instead of pub/sub;
+// this project has no replay requirement.
 //
 // @EnableScheduling turns on @Scheduled methods, which OutboxRelay uses to send
 // waiting events in the background.
@@ -25,12 +29,5 @@ public class MessagingConfig {
     @Bean
     public FanoutExchange studyEventsExchange() {
         return new FanoutExchange(StudyEvents.EXCHANGE, true, false);
-    }
-
-    // Sends event objects as JSON, so any consumer (in any language) can read them.
-    // Spring Boot's RabbitTemplate picks this converter up automatically.
-    @Bean
-    public MessageConverter messageConverter() {
-        return new JacksonJsonMessageConverter();
     }
 }

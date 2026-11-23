@@ -42,11 +42,16 @@ services:
   # Analytics will each consume them from their own queue.
   rabbitmq:
     image: rabbitmq:4.3.8-management   # -management includes the web dashboard
+    # RabbitMQ keeps its data under its node name, which includes the hostname. A fixed
+    # hostname lets a recreated container find the data in the volume below.
+    hostname: rabbitmq
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq   # keeps queues and waiting messages between containers
     environment:
       RABBITMQ_DEFAULT_USER: flashcards
       RABBITMQ_DEFAULT_PASS: flashcards   # local development only
     ports:
-      - "15672:15672"   # dashboard at http://localhost:15672 (local only)
+      - "127.0.0.1:15672:15672"   # dashboard at http://localhost:15672 (local only)
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
@@ -87,3 +92,4 @@ services:
 
 volumes:
   pgdata:
+  rabbitmqdata:

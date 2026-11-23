@@ -17,8 +17,8 @@ import java.util.UUID;
 //  "priorities":[{"cardId":4,"priority":17},{"cardId":9,"priority":23}]}
 public class SavePrioritiesRequest {
 
-    // Fixed for this batch, including when the browser retries it; becomes the
-    // event's eventId so consumers can skip a batch they've already processed.
+    // Fixed for this batch, including when the browser retries it; becomes part of
+    // the event's eventId so consumers can skip a batch they've already processed.
     @NotNull
     private UUID batchId;
 
