@@ -1,0 +1,9 @@
+# Image builds use the repository root as their context; keep out anything that is
+# never needed inside an image, and local secrets.
+.git/
+.github/
+.vscode/
+docs/
+**/target/
+**/HELP.md
+**/application-local.properties
