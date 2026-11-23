@@ -2,7 +2,6 @@ package com.flashcards.controller;
 
 import com.flashcards.common.security.AuthenticatedUser;
 import com.flashcards.exception.DeckNotFoundException;
-import com.flashcards.exception.EventPublishException;
 import com.flashcards.security.JwtAuthFilter;
 import com.flashcards.service.StudyService;
 import org.junit.jupiter.api.DisplayName;
@@ -119,16 +118,5 @@ class StudyControllerTest {
         putProgress(body("[{\"cardId\":4,\"priority\":17}]"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Deck not found with id: 1"));
-    }
-
-    @Test
-    @DisplayName("If the event can't be published, returns 503 so the browser retries")
-    void returnsServiceUnavailableWhenBrokerIsDown() throws Exception {
-        willThrow(new EventPublishException(new RuntimeException("broker down")))
-                .given(studyService).savePriorities(eq(1L), eq(1L), any());
-
-        putProgress(body("[{\"cardId\":4,\"priority\":17}]"))
-                .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.status").value(503));
     }
 }

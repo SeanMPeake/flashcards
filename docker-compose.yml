@@ -35,8 +35,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy   # wait until Postgres accepts connections
-      rabbitmq:
-        condition: service_healthy   # and until the broker accepts connections
+      # No wait for RabbitMQ: events wait in the outbox table until the broker is
+      # reachable, so the deck service starts and serves requests without it.
 
   # Message broker. The deck service publishes study events to it; Review Insights and
   # Analytics will each consume them from their own queue.

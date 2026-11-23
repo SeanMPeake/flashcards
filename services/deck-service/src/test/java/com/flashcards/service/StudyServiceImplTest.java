@@ -4,25 +4,21 @@ import com.flashcards.common.events.StudyProgressSaved;
 import com.flashcards.dto.request.SavePrioritiesRequest;
 import com.flashcards.dto.request.SavePrioritiesRequest.PriorityUpdate;
 import com.flashcards.exception.DeckNotFoundException;
-import com.flashcards.exception.EventPublishException;
-import com.flashcards.messaging.StudyEventPublisher;
+import com.flashcards.model.OutboxEvent;
 import com.flashcards.repository.CardRepository;
 import com.flashcards.repository.DeckRepository;
+import com.flashcards.repository.OutboxEventRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -31,18 +27,16 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.BDDMockito.willThrow;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 
-// Service Unit Test — StudyServiceImpl saves a batch of study progress, then publishes
-// a StudyProgressSaved event.
+// Service Unit Test — StudyServiceImpl saves a batch of study progress and stores a
+// StudyProgressSaved event for it in the outbox.
 //
 // The never-lower, same-deck-only rule lives in one atomic database UPDATE
 // (CardRepository.raisePriority); these tests check the service hands every entry to
 // it for the right deck and owner. That the database itself rejects lower values,
-// including under simultaneous saves, was checked live against Postgres.
+// including under simultaneous saves, was checked live against Postgres. That the
+// outbox row and the priorities commit together comes from @Transactional.
 @ExtendWith(MockitoExtension.class)
 class StudyServiceImplTest {
 
@@ -59,22 +53,16 @@ class StudyServiceImplTest {
     private DeckRepository deckRepository;
 
     @Mock
-    private StudyEventPublisher eventPublisher;
+    private OutboxEventRepository outboxRepository;
 
-    @Mock
-    private TransactionTemplate transactionTemplate;
+    // A real mapper, so the tests also check the stored JSON reads back as the event.
+    private final JsonMapper jsonMapper = JsonMapper.builder().build();
 
-    @InjectMocks
     private StudyServiceImpl studyService;
 
-    // The mocked TransactionTemplate simply runs the work it is given.
     @BeforeEach
-    @SuppressWarnings("unchecked")
-    void runTransactionsDirectly() {
-        lenient().doAnswer(inv -> {
-            ((Consumer<TransactionStatus>) inv.getArgument(0)).accept(null);
-            return null;
-        }).when(transactionTemplate).executeWithoutResult(any());
+    void createService() {
+        studyService = new StudyServiceImpl(cardRepository, deckRepository, outboxRepository, jsonMapper);
     }
 
     private SavePrioritiesRequest request(int reviewed, int flagged, PriorityUpdate... updates) {
@@ -93,20 +81,19 @@ class StudyServiceImplTest {
     }
 
     @Test
-    @DisplayName("Publishes a StudyProgressSaved event describing the batch, after saving")
-    void publishesEventAfterSaving() {
+    @DisplayName("Stores a StudyProgressSaved event describing the batch in the outbox")
+    void storesEventInOutbox() {
         given(deckRepository.existsByIdAndOwnerUserId(DECK, USER)).willReturn(true);
 
         studyService.savePriorities(USER, DECK, request(5, 2, new PriorityUpdate(1L, 13)));
 
-        // The save happens first, the event second.
-        InOrder order = inOrder(cardRepository, eventPublisher);
-        order.verify(cardRepository).raisePriority(eq(DECK), eq(1L), eq(13), any());
-        ArgumentCaptor<StudyProgressSaved> captor = ArgumentCaptor.forClass(StudyProgressSaved.class);
-        order.verify(eventPublisher).publish(captor.capture());
+        ArgumentCaptor<OutboxEvent> captor = ArgumentCaptor.forClass(OutboxEvent.class);
+        then(outboxRepository).should().save(captor.capture());
+        OutboxEvent row = captor.getValue();
+        assertEquals(BATCH.toString(), row.getEventId());
 
-        StudyProgressSaved event = captor.getValue();
-        assertEquals(BATCH.toString(), event.eventId());    // the batch id, so retries can be skipped
+        StudyProgressSaved event = jsonMapper.readValue(row.getPayload(), StudyProgressSaved.class);
+        assertEquals(BATCH.toString(), event.eventId());    // the batch id, so repeats can be skipped
         assertEquals(USER, event.userId());
         assertEquals(DECK, event.deckId());
         assertEquals(SESSION.toString(), event.sessionId());
@@ -123,7 +110,7 @@ class StudyServiceImplTest {
         assertThrows(DeckNotFoundException.class,
                 () -> studyService.savePriorities(OTHER_USER, DECK, request(1, 0, new PriorityUpdate(1L, 99))));
         then(cardRepository).should(never()).raisePriority(anyLong(), anyLong(), anyInt(), any());
-        then(eventPublisher).should(never()).publish(any());
+        then(outboxRepository).should(never()).save(any());
     }
 
     @Test
@@ -132,17 +119,6 @@ class StudyServiceImplTest {
         assertThrows(IllegalArgumentException.class,
                 () -> studyService.savePriorities(USER, DECK, request(2, 3, new PriorityUpdate(1L, 13))));
         then(cardRepository).should(never()).raisePriority(anyLong(), anyLong(), anyInt(), any());
-        then(eventPublisher).should(never()).publish(any());
-    }
-
-    @Test
-    @DisplayName("If the broker can't be reached, the failure reaches the caller (so the browser retries)")
-    void publishFailureIsReported() {
-        given(deckRepository.existsByIdAndOwnerUserId(DECK, USER)).willReturn(true);
-        willThrow(new EventPublishException(new RuntimeException("broker down")))
-                .given(eventPublisher).publish(any());
-
-        assertThrows(EventPublishException.class,
-                () -> studyService.savePriorities(USER, DECK, request(1, 0, new PriorityUpdate(1L, 13))));
+        then(outboxRepository).should(never()).save(any());
     }
 }

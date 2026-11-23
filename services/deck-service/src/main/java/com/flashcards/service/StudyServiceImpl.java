@@ -3,11 +3,13 @@ package com.flashcards.service;
 import com.flashcards.common.events.StudyProgressSaved;
 import com.flashcards.dto.request.SavePrioritiesRequest;
 import com.flashcards.exception.DeckNotFoundException;
-import com.flashcards.messaging.StudyEventPublisher;
+import com.flashcards.model.OutboxEvent;
 import com.flashcards.repository.CardRepository;
 import com.flashcards.repository.DeckRepository;
+import com.flashcards.repository.OutboxEventRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
 
@@ -16,18 +18,18 @@ public class StudyServiceImpl implements StudyService {
 
     private final CardRepository cardRepository;
     private final DeckRepository deckRepository;
-    private final StudyEventPublisher eventPublisher;
-    private final TransactionTemplate transactionTemplate;
+    private final OutboxEventRepository outboxRepository;
+    private final JsonMapper jsonMapper;
 
     public StudyServiceImpl(CardRepository cardRepository, DeckRepository deckRepository,
-                            StudyEventPublisher eventPublisher, TransactionTemplate transactionTemplate) {
+                            OutboxEventRepository outboxRepository, JsonMapper jsonMapper) {
         this.cardRepository = cardRepository;
         this.deckRepository = deckRepository;
-        this.eventPublisher = eventPublisher;
-        this.transactionTemplate = transactionTemplate;
+        this.outboxRepository = outboxRepository;
+        this.jsonMapper = jsonMapper;
     }
 
-    // Saves a batch of study progress, then publishes a StudyProgressSaved event.
+    // Saves a batch of study progress and records a StudyProgressSaved event for it.
     //
     // Saving: each entry is applied with a single conditional UPDATE (see
     // CardRepository.raisePriority), which only changes a card that is in this deck
@@ -41,37 +43,35 @@ public class StudyServiceImpl implements StudyService {
     // - The database compares and writes in one atomic step, so two saves arriving
     //   at the same moment can't lower a priority either.
     //
-    // Publishing happens only after the save has committed, so an event never
-    // describes progress that was rolled back. If publishing fails, the request fails
-    // (503) and the browser retries the same batch: the save repeats harmlessly and the
-    // event is sent again with the same eventId, which consumers skip if they already
-    // have it. That gives at-least-once delivery without an outbox table. (At scale: a
-    // transactional outbox, so the event is stored in the same transaction as the save.)
+    // The event: it is stored in the outbox table in the same transaction as the
+    // priorities, so both are saved or neither is. OutboxRelay sends it to RabbitMQ
+    // in the background, so the broker being down never affects saving or studying.
+    // The browser's batchId becomes the eventId: if the browser re-sends a batch, the
+    // event is stored again with the same id, and consumers skip the repeat.
     @Override
+    @Transactional
     public void savePriorities(Long userId, Long deckId, SavePrioritiesRequest request) {
         if (request.getCardsFlagged() > request.getCardsReviewed()) {
             throw new IllegalArgumentException("cardsFlagged cannot exceed cardsReviewed");
         }
+        if (!deckRepository.existsByIdAndOwnerUserId(deckId, userId)) {
+            // Another user's deck is reported as not found (404), so its existence is never revealed.
+            throw new DeckNotFoundException(deckId);
+        }
 
-        transactionTemplate.executeWithoutResult(status -> {
-            if (!deckRepository.existsByIdAndOwnerUserId(deckId, userId)) {
-                // Another user's deck is reported as not found (404), so its existence is never revealed.
-                throw new DeckNotFoundException(deckId);
-            }
+        Instant now = Instant.now();
+        for (SavePrioritiesRequest.PriorityUpdate update : request.getPriorities()) {
+            cardRepository.raisePriority(deckId, update.getCardId(), update.getPriority(), now);
+        }
 
-            Instant now = Instant.now();
-            for (SavePrioritiesRequest.PriorityUpdate update : request.getPriorities()) {
-                cardRepository.raisePriority(deckId, update.getCardId(), update.getPriority(), now);
-            }
-        });
-
-        eventPublisher.publish(new StudyProgressSaved(
+        StudyProgressSaved event = new StudyProgressSaved(
                 request.getBatchId().toString(),
                 userId,
                 deckId,
                 request.getSessionId().toString(),
                 request.getCardsReviewed(),
                 request.getCardsFlagged(),
-                Instant.now()));
+                now);
+        outboxRepository.save(new OutboxEvent(event.eventId(), jsonMapper.writeValueAsString(event)));
     }
 }

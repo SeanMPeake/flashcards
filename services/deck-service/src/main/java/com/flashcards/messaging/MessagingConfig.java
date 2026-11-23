@@ -6,13 +6,18 @@ import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 // RabbitMQ setup for the publishing side.
 //
 // The deck service only declares the exchange it publishes to. It doesn't declare
 // any queues: each consuming service (Review Insights, Analytics) declares and binds
 // its own queue, so the publisher never needs to know who is listening.
+//
+// @EnableScheduling turns on @Scheduled methods, which OutboxRelay uses to send
+// waiting events in the background.
 @Configuration
+@EnableScheduling
 public class MessagingConfig {
 
     // Fanout: every message is copied to every queue bound to this exchange.
