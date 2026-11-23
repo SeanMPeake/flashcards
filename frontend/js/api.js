@@ -156,7 +156,8 @@ export async function deleteCard(deckId, cardId) {
 // How long one save may take before it is treated as failed (and retried later).
 const SAVE_TIMEOUT_MS = 5000;
 
-// Saves a batch of study priorities: [{ cardId, priority }, ...].
+// Saves one sealed batch of study progress:
+// { batchId, sessionId, cardsReviewed, cardsFlagged, priorities: [{ cardId, priority }, ...] }.
 // keepalive lets the request finish even if the page is closed while it is on its
 // way; the timeout stops a save from hanging when the server doesn't answer.
 //
@@ -164,11 +165,12 @@ const SAVE_TIMEOUT_MS = 5000;
 // - `permanent`: a 400 (rejected data) or 404 (deck deleted) fails the same way every time;
 // - `unauthorized` (from apiFetch): the login has ended, so there is nothing to retry with;
 // - otherwise (network error, server error, timeout) it might succeed later.
-export async function savePriorities(deckId, priorities) {
+export async function savePriorities(deckId, batch) {
+    const { batchId, sessionId, cardsReviewed, cardsFlagged, priorities } = batch;
     const response = await apiFetch(`/api/study/${deckId}/priorities`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priorities }),
+        body: JSON.stringify({ batchId, sessionId, cardsReviewed, cardsFlagged, priorities }),
         keepalive: true,
         signal: AbortSignal.timeout(SAVE_TIMEOUT_MS)
     });
