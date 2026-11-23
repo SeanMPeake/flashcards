@@ -12,6 +12,7 @@ import com.flashcards.repository.DeckRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -68,6 +69,28 @@ class CardServiceImplTest {
         assertEquals("What is JVM?", result.getFrontText());
         assertEquals("Java Virtual Machine.", result.getBackText());
         assertEquals(0, result.getPriority());
+    }
+
+    @Test
+    @DisplayName("createCard places a new card at the back of a deck that has been studied")
+    void createCardGoesToBackOfStudiedDeck() throws Exception {
+        Deck deck = new Deck(USER, "Java Basics", "Core Java review cards");
+        setId(deck, 1L);
+
+        // Studied cards have grown to priority 95; the deck has only 10 cards.
+        given(deckRepository.findByIdAndOwnerUserId(1L, USER)).willReturn(Optional.of(deck));
+        given(cardRepository.findMaxPriority(1L)).willReturn(95);
+        given(cardRepository.save(any(Card.class))).willAnswer(inv -> inv.getArgument(0));
+
+        CreateCardRequest request = new CreateCardRequest();
+        request.setFrontText("New card");
+        request.setBackText("Added after studying");
+
+        ArgumentCaptor<Card> captor = ArgumentCaptor.forClass(Card.class);
+        cardService.createCard(USER, 1L, request);
+        then(cardRepository).should().save(captor.capture());
+
+        assertEquals(96, captor.getValue().getPriority());
     }
 
     @Test

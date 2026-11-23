@@ -22,7 +22,9 @@ async function apiFetch(url, options = {}) {
     if (response.status === 401) {
         clearSession();
         onUnauthorized();
-        throw new Error("Your session has ended. Please log in again.");
+        const error = new Error("Your session has ended. Please log in again.");
+        error.unauthorized = true;   // callers must stop, not retry: there is no token any more
+        throw error;
     }
     return response;
 }
@@ -151,28 +153,28 @@ export async function deleteCard(deckId, cardId) {
     }
 }
 
-// Builds a fresh study session for the given deck.
-// Returns { card, totalCards } — the first card due and the total number of
-// cards in the deck, used to initialize the card position display.
-export async function startStudySession(deckId) {
-    const response = await apiFetch(`/api/study/${deckId}/start`);
-    if (!response.ok) {
-        throw new Error("Unable to start study session.");
-    }
-    const data = await response.json();
-    return { card: data.card, totalCards: data.totalCards };
-}
+// How long one save may take before it is treated as failed (and retried later).
+const SAVE_TIMEOUT_MS = 5000;
 
-// Reschedules the card just viewed and returns the next card due.
-// markForReview flag determines whether the card is placed in the middle or back of the queue.
-export async function nextStudyCard(deckId, cardId, priority, markForReview) {
-    const response = await apiFetch(`/api/study/${deckId}/next`, {
-        method: "POST",
+// Saves a batch of study priorities: [{ cardId, priority }, ...].
+// keepalive lets the request finish even if the page is closed while it is on its
+// way; the timeout stops a save from hanging when the server doesn't answer.
+//
+// On failure, the thrown Error says whether retrying can help:
+// - `permanent`: a 400 (rejected data) or 404 (deck deleted) fails the same way every time;
+// - `unauthorized` (from apiFetch): the login has ended, so there is nothing to retry with;
+// - otherwise (network error, server error, timeout) it might succeed later.
+export async function savePriorities(deckId, priorities) {
+    const response = await apiFetch(`/api/study/${deckId}/priorities`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardId, priority, markForReview })
+        body: JSON.stringify({ priorities }),
+        keepalive: true,
+        signal: AbortSignal.timeout(SAVE_TIMEOUT_MS)
     });
     if (!response.ok) {
-        throw new Error("Unable to load next card.");
+        const error = new Error("Unable to save study progress.");
+        error.permanent = response.status === 400 || response.status === 404;
+        throw error;
     }
-    return response.json();
 }

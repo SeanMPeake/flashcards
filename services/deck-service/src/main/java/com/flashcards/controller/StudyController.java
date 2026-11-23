@@ -1,17 +1,16 @@
 package com.flashcards.controller;
 
 import com.flashcards.common.security.AuthenticatedUser;
-import com.flashcards.dto.request.NextCardRequest;
-import com.flashcards.dto.response.CardResponse;
-import com.flashcards.dto.response.StudyStartResponse;
+import com.flashcards.dto.request.SavePrioritiesRequest;
 import com.flashcards.security.JwtAuthFilter;
 import com.flashcards.service.StudyService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-// @RequestAttribute reads the logged-in user that JwtAuthFilter attached to the
-// request; study only works on that user's own decks.
+// Study itself runs in the browser (it loads the deck with GET /api/decks/{id} and
+// schedules cards locally). This endpoint only saves the resulting priorities.
+// @RequestAttribute reads the logged-in user that JwtAuthFilter attached to the request.
 @RestController
 @RequestMapping("/api/study")
 public class StudyController {
@@ -22,23 +21,13 @@ public class StudyController {
         this.studyService = studyService;
     }
 
-    // Called when the user selects a deck in study mode.
-    // Builds a fresh session and returns the first card.
-    @GetMapping("/{deckId}/start")
-    public ResponseEntity<StudyStartResponse> startSession(
-            @RequestAttribute(JwtAuthFilter.AUTHENTICATED_USER) AuthenticatedUser user,
-            @PathVariable Long deckId) {
-        return ResponseEntity.ok(studyService.startSession(user.userId(), deckId));
-    }
-
-    // Called each time the user advances to the next card.
-    // Reschedules the card just viewed, then returns the next card due.
-    @PostMapping("/{deckId}/next")
-    public ResponseEntity<CardResponse> nextCard(
+    // Called by the browser every few cards and when the user leaves study.
+    @PutMapping("/{deckId}/priorities")
+    public ResponseEntity<Void> savePriorities(
             @RequestAttribute(JwtAuthFilter.AUTHENTICATED_USER) AuthenticatedUser user,
             @PathVariable Long deckId,
-            @Valid @RequestBody NextCardRequest request) {
-
-        return ResponseEntity.ok(studyService.nextCard(user.userId(), deckId, request));
+            @Valid @RequestBody SavePrioritiesRequest request) {
+        studyService.savePriorities(user.userId(), deckId, request);
+        return ResponseEntity.noContent().build();
     }
 }

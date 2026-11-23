@@ -1,6 +1,7 @@
 import { fetchDeckSummaries, setUnauthorizedHandler } from "./api.js";
 import { clearSession, getUsername, isLoggedIn } from "./auth.js";
 import { initLoginView, resetLoginView } from "./login.js";
+import { stopSaving } from "./studySaver.js";
 import {
     sessionUsernameEl,
     homeButtonEl,
@@ -26,6 +27,7 @@ import {
 import { clearDeckList, renderDeckList, setDeckListStatus, showView } from "./view.js";
 import {
     clearSelectedDeck,
+    leaveStudy,
     flipCard,
     renderStudyView,
     setSelectedDeck,
@@ -63,16 +65,29 @@ function showLogin(message) {
 
 initLoginView(showHome);
 
-homeButtonEl.addEventListener("click", showHome);
+// Leaving study starts saving outstanding progress in the background; navigation
+// doesn't wait for it.
+homeButtonEl.addEventListener("click", () => {
+    leaveStudy();
+    showHome();
+});
 
-logoutButtonEl.addEventListener("click", () => {
+// Log out waits for one save attempt (at most a few seconds) while the login token
+// is still valid; after logout there is no token left to retry with.
+logoutButtonEl.addEventListener("click", async () => {
+    await leaveStudy();
+    stopSaving();
     clearSession();
     showLogin();
 });
 
 // Any deck or study request that comes back 401 means the token is missing or
-// expired: return to the login screen.
-setUnauthorizedHandler(() => showLogin("Your session has ended. Please log in again."));
+// expired: stop background saving (it can't succeed without a token) and return
+// to the login screen.
+setUnauthorizedHandler(() => {
+    stopSaving();
+    showLogin("Your session has ended. Please log in again.");
+});
 
 // The deck selection screen only needs summary data, not full card payloads.
 async function loadDeckSummaries() {
@@ -168,12 +183,13 @@ backToHomeButtonEl.addEventListener("click", () => {
 });
 
 backToDecksButtonEl.addEventListener("click", () => {
+    leaveStudy();
     showView("deckSelection");
 });
 
 flashcardEl.addEventListener("click", flipCard);
 prevButtonEl.addEventListener("click", showPreviousCard);
-nextButtonEl.addEventListener("click", async () => await showNextCard());
+nextButtonEl.addEventListener("click", showNextCard);
 
 // On page load: a valid saved login goes straight home; otherwise log in.
 renderStudyView();
