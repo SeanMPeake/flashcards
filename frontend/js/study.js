@@ -27,6 +27,7 @@ import {
 
 // State for the active study session.
 let currentDeckId = null;
+let sessionId = null;     // a new id each time a deck is opened; groups its saved batches
 let cards = [];           // every card in the deck: { id, frontText, backText, priority }
 let currentCard = null;
 let isFlipped = false;
@@ -89,6 +90,7 @@ function renderCard() {
 // Loads the whole deck once and shows the card due first.
 export async function setSelectedDeck(deckId, deckName) {
     currentDeckId = deckId;
+    sessionId = crypto.randomUUID();
     cards = [];
     currentCard = null;
     isFlipped = false;
@@ -200,9 +202,10 @@ export function showNextCard() {
     }
 
     // At least 1, so marking a card in a one-card deck still moves it (half of 1 rounds to 0).
-    const step = markForReviewCheckboxEl.checked ? Math.max(1, Math.floor(cards.length / 2)) : cards.length;
+    const flagged = markForReviewCheckboxEl.checked;
+    const step = flagged ? Math.max(1, Math.floor(cards.length / 2)) : cards.length;
     currentCard.priority += step;
-    recordPriority(currentDeckId, currentCard.id, currentCard.priority);
+    recordPriority(currentDeckId, sessionId, currentCard.id, currentCard.priority, flagged);
 
     currentCard = nextDueCard();
     isFlipped = false;

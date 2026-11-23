@@ -10,14 +10,27 @@ import { saveStatusEl } from "./dom.js";
 // opens another deck. This keeps study available during an outage (the AP choice);
 // the cost is that progress still unsaved when the tab is closed, or when the user
 // logs out, during an outage is lost.
+//
+// Batches: reviews collect in an open batch per deck. When a save starts, each open
+// batch is sealed: it gets a batchId and never changes again, so a retry sends
+// exactly the same batch with the same id. The deck service builds the
+// StudyProgressSaved event's eventId from it, which lets consumers skip a batch they
+// have already counted. Reviews made while a batch is being retried go into a new
+// batch, and a batch is also sealed once it reaches MAX_BATCH_REVIEWS, so it always
+// stays within the server's size limit.
 
 const SAVE_EVERY = 5;           // cards reviewed between saves
+const MAX_BATCH_REVIEWS = 100;  // well under the server's limit of 500 per batch
 const FIRST_RETRY_MS = 1000;    // then 2s, 4s, 8s... up to the maximum
 const MAX_RETRY_MS = 30000;
 
-// Unsaved priorities, kept per deck so that progress from a deck the user has
-// left keeps being retried: deckId -> Map(cardId -> newest unsaved priority).
-const pendingByDeck = new Map();
+// Progress still being collected, one open batch per deck:
+// deckId -> { sessionId, cardsReviewed, cardsFlagged, priorities: Map(cardId -> newest priority) }
+const openByDeck = new Map();
+
+// Sealed batches waiting to be sent, oldest first:
+// { deckId, batchId, sessionId, cardsReviewed, cardsFlagged, priorities: [{ cardId, priority }] }
+const sealed = [];
 
 let reviewsSinceSave = 0;
 let retryDelay = FIRST_RETRY_MS;
@@ -26,12 +39,7 @@ let inFlight = null;            // the save currently being sent, if any
 let lastRejected = false;       // the server permanently rejected some progress
 
 function hasPending() {
-    for (const cards of pendingByDeck.values()) {
-        if (cards.size > 0) {
-            return true;
-        }
-    }
-    return false;
+    return sealed.length > 0 || openByDeck.size > 0;
 }
 
 // Shows the overall save state on the study screen.
@@ -49,12 +57,50 @@ export function showSaveStatus() {
     saveStatusEl.textContent = text;
 }
 
-// Records a card's new priority; saves once enough cards have been reviewed.
-export function recordPriority(deckId, cardId, priority) {
-    if (!pendingByDeck.has(deckId)) {
-        pendingByDeck.set(deckId, new Map());
+// Closes a deck's open batch and queues it for sending with a new batchId.
+function seal(deckId) {
+    const open = openByDeck.get(deckId);
+    if (!open) {
+        return;
     }
-    pendingByDeck.get(deckId).set(cardId, priority);
+    openByDeck.delete(deckId);
+    sealed.push({
+        deckId,
+        batchId: crypto.randomUUID(),
+        sessionId: open.sessionId,
+        cardsReviewed: open.cardsReviewed,
+        cardsFlagged: open.cardsFlagged,
+        priorities: [...open.priorities].map(([cardId, priority]) => ({ cardId, priority }))
+    });
+}
+
+function sealAll() {
+    for (const deckId of [...openByDeck.keys()]) {
+        seal(deckId);
+    }
+}
+
+// Records a reviewed card's new priority, and whether it was marked for review;
+// saves once enough cards have been reviewed.
+export function recordPriority(deckId, sessionId, cardId, priority, flagged) {
+    // A new session on this deck starts a new batch, so a batch never mixes sessions.
+    if (openByDeck.has(deckId) && openByDeck.get(deckId).sessionId !== sessionId) {
+        seal(deckId);
+    }
+    if (!openByDeck.has(deckId)) {
+        openByDeck.set(deckId, { sessionId, cardsReviewed: 0, cardsFlagged: 0, priorities: new Map() });
+    }
+
+    const open = openByDeck.get(deckId);
+    open.priorities.set(cardId, priority);
+    open.cardsReviewed++;
+    if (flagged) {
+        open.cardsFlagged++;
+    }
+    // A save in progress or a scheduled retry delays sealing, so cap the batch here.
+    if (open.cardsReviewed >= MAX_BATCH_REVIEWS) {
+        seal(deckId);
+    }
     reviewsSinceSave++;
 
     // During an outage a retry is already scheduled and will carry these entries
@@ -66,19 +112,10 @@ export function recordPriority(deckId, cardId, priority) {
     }
 }
 
-// Removes what a batch sent, unless a card has moved on again since.
-function removeSent(deckId, batch) {
-    const cards = pendingByDeck.get(deckId);
-    if (!cards) {
-        return;
-    }
-    for (const { cardId, priority } of batch) {
-        if (cards.get(cardId) === priority) {
-            cards.delete(cardId);
-        }
-    }
-    if (cards.size === 0) {
-        pendingByDeck.delete(deckId);
+function removeBatch(batch) {
+    const index = sealed.indexOf(batch);
+    if (index !== -1) {
+        sealed.splice(index, 1);
     }
 }
 
@@ -93,14 +130,13 @@ function scheduleRetry() {
     retryDelay = Math.min(retryDelay * 2, MAX_RETRY_MS);
 }
 
-// Sends each deck's unsaved progress in turn. Stops at the first failure that
-// might succeed later and schedules a retry for everything still pending.
+// Sends the sealed batches in order. Stops at the first failure that might succeed
+// later and schedules a retry; the failed batch stays queued, unchanged.
 async function sendAll() {
-    for (const [deckId, cards] of [...pendingByDeck]) {
-        const batch = [...cards].map(([cardId, priority]) => ({ cardId, priority }));
+    for (const batch of [...sealed]) {
         try {
-            await savePriorities(deckId, batch);
-            removeSent(deckId, batch);
+            await savePriorities(batch.deckId, batch);
+            removeBatch(batch);
             retryDelay = FIRST_RETRY_MS;
             lastRejected = false;
         } catch (error) {
@@ -110,8 +146,8 @@ async function sendAll() {
                 return;
             }
             if (error.permanent) {
-                // Rejected data or a deleted deck: drop only this batch's entries.
-                removeSent(deckId, batch);
+                // Rejected data or a deleted deck: drop only this batch.
+                removeBatch(batch);
                 lastRejected = true;
                 continue;
             }
@@ -134,6 +170,7 @@ export function saveNow() {
     clearTimeout(retryTimer);
     retryTimer = null;
     reviewsSinceSave = 0;
+    sealAll();
 
     inFlight = sendAll().finally(() => {
         inFlight = null;
@@ -147,18 +184,20 @@ export function saveNow() {
 export function stopSaving() {
     clearTimeout(retryTimer);
     retryTimer = null;
-    pendingByDeck.clear();
+    openByDeck.clear();
+    sealed.length = 0;
     reviewsSinceSave = 0;
     retryDelay = FIRST_RETRY_MS;
 }
 
 // If the tab is closed or hidden, send everything pending straight away, even if
-// another save is already on its way (re-sending a value is harmless: the server
-// keeps the highest). Every save uses keepalive, so these requests can complete
-// as the page goes away.
+// another save is already on its way. Sending a batch twice is harmless: it keeps
+// its batchId, the server keeps the highest priority, and consumers skip the
+// duplicate event. Every save uses keepalive, so these requests can complete as
+// the page goes away.
 window.addEventListener("pagehide", () => {
-    for (const [deckId, cards] of pendingByDeck) {
-        const batch = [...cards].map(([cardId, priority]) => ({ cardId, priority }));
-        savePriorities(deckId, batch).catch(() => {});
+    sealAll();
+    for (const batch of sealed) {
+        savePriorities(batch.deckId, batch).catch(() => {});
     }
 });

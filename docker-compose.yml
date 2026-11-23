@@ -29,9 +29,33 @@ services:
       SPRING_DATASOURCE_USERNAME: content_svc
       SPRING_DATASOURCE_PASSWORD: content_svc
       JWT_SECRET: *jwt-secret
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: flashcards
+      SPRING_RABBITMQ_PASSWORD: flashcards
     depends_on:
       postgres:
         condition: service_healthy   # wait until Postgres accepts connections
+      # No wait for RabbitMQ: events wait in the outbox table until the broker is
+      # reachable, so the deck service starts and serves requests without it.
+
+  # Message broker. The deck service publishes study events to it; Review Insights and
+  # Analytics will each consume them from their own queue.
+  rabbitmq:
+    image: rabbitmq:4.3.8-management   # -management includes the web dashboard
+    # RabbitMQ keeps its data under its node name, which includes the hostname. A fixed
+    # hostname lets a recreated container find the data in the volume below.
+    hostname: rabbitmq
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq   # keeps queues and waiting messages between containers
+    environment:
+      RABBITMQ_DEFAULT_USER: flashcards
+      RABBITMQ_DEFAULT_PASS: flashcards   # local development only
+    ports:
+      - "127.0.0.1:15672:15672"   # dashboard at http://localhost:15672 (local only)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      retries: 20
 
   user-service:
     build:
@@ -68,3 +92,4 @@ services:
 
 volumes:
   pgdata:
+  rabbitmqdata:
