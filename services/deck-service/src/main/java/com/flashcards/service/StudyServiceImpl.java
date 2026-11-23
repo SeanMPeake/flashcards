@@ -1,124 +1,55 @@
 package com.flashcards.service;
 
-import com.flashcards.datastructure.MinHeap;
-import com.flashcards.datastructure.StudySession;
-import com.flashcards.dto.request.NextCardRequest;
-import com.flashcards.dto.response.CardResponse;
-import com.flashcards.dto.response.StudyStartResponse;
-import com.flashcards.exception.CardNotFoundException;
+import com.flashcards.dto.request.SavePrioritiesRequest;
 import com.flashcards.exception.DeckNotFoundException;
-import com.flashcards.exception.EmptyDeckException;
 import com.flashcards.model.Card;
 import com.flashcards.repository.CardRepository;
 import com.flashcards.repository.DeckRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class StudyServiceImpl implements StudyService {
 
-    private final StudySessionManager sessionManager;
     private final CardRepository cardRepository;
     private final DeckRepository deckRepository;
 
-    public StudyServiceImpl(StudySessionManager sessionManager,
-                            CardRepository cardRepository,
-                            DeckRepository deckRepository) {
-        this.sessionManager = sessionManager;
+    public StudyServiceImpl(CardRepository cardRepository, DeckRepository deckRepository) {
         this.cardRepository = cardRepository;
         this.deckRepository = deckRepository;
     }
 
-    // Rebuilds the session from the database each time study mode is entered for a deck.
-    // This ensures the heap and hash map always reflect current card priorities,
-    // avoiding any stale state from a previous session.
-    @Transactional(readOnly = true)
-    @Override
-    public StudyStartResponse startSession(Long userId, Long deckId) {
-        requireOwnedDeck(userId, deckId);
-
-        List<Card> cards = cardRepository.findByDeckId(deckId);
-
-        if (cards.isEmpty()) {
-            throw new EmptyDeckException(deckId);
-        }
-
-        StudySession session = sessionManager.createSession(userId, deckId, cards);
-
-        return new StudyStartResponse(buildResponse(session), session.getDeckSize());
-    }
-
-    // Reschedules the card just viewed, persists its new priority to the database,
-    // then returns the next card from the heap.
+    // Saves a batch of priorities from the browser in one transaction.
     //
-    // Ownership is checked on every call, even when a session already exists, so no
-    // one can continue a study session on a deck they don't own.
-    //
-    // If no session exists (e.g. after a server restart), the session is rebuilt
-    // from the database before continuing. Priority updates from the lost session
-    // will already have been persisted, so the heap reflects current state.
+    // Only cards in this deck, which this user owns, are ever changed. Card ids that
+    // aren't in the deck are skipped rather than failing the whole batch: a card
+    // deleted in another tab mid-study must not make the save fail forever (the
+    // browser would keep retrying it), and ids from other decks are never touched.
     @Transactional
     @Override
-    public CardResponse nextCard(Long userId, Long deckId, NextCardRequest request) {
-        requireOwnedDeck(userId, deckId);
-
-        StudySession session = sessionManager.getSession(userId, deckId);
-
-        if (session == null) {
-            List<Card> cards = cardRepository.findByDeckId(deckId);
-
-            if (cards.isEmpty()) {
-                throw new EmptyDeckException(deckId);
-            }
-
-            session = sessionManager.createSession(userId, deckId, cards);
-        }
-
-        // The card id comes from the request, so check it belongs to this deck before
-        // changing anything; otherwise a user could alter a card in someone else's deck.
-        Card viewed = cardRepository.findById(request.getCardId())
-                .orElseThrow(() -> new CardNotFoundException(request.getCardId()));
-        if (!viewed.getDeck().getId().equals(deckId)) {
-            throw new CardNotFoundException(request.getCardId());
-        }
-
-        // A card added to the deck after this session was built (e.g. in another tab)
-        // isn't in the session yet: rebuild it from the database so it includes the card.
-        if (session.findCard(viewed.getId()) == null) {
-            session = sessionManager.createSession(userId, deckId, cardRepository.findByDeckId(deckId));
-        }
-
-        // Reschedule the card the user just viewed and persist its updated priority.
-        // The current priority comes from the database, not the request, so a client
-        // can't set an arbitrary value; it is saved on every step, so it matches the heap.
-        int newPriority = session.reschedule(
-                viewed.getId(), viewed.getPriority(), request.isMarkForReview());
-        viewed.setPriority(newPriority);
-        cardRepository.save(viewed);
-
-        return buildResponse(session);
-    }
-
-    // Another user's deck is reported as not found (404), so its existence is never revealed.
-    private void requireOwnedDeck(Long userId, Long deckId) {
+    public void savePriorities(Long userId, Long deckId, SavePrioritiesRequest request) {
         if (!deckRepository.existsByIdAndOwnerUserId(deckId, userId)) {
+            // Another user's deck is reported as not found (404), so its existence is never revealed.
             throw new DeckNotFoundException(deckId);
         }
-    }
 
-    // Extracts the next node from the heap and looks up its full card data from the map.
-    // The priority comes from the heap node rather than the card entity because the
-    // heap may hold an updated value that has not yet been flushed to the database.
-    private CardResponse buildResponse(StudySession session) {
-        MinHeap.HeapNode node = session.nextNode();
-        Card card = session.findCard(node.cardId);
+        Map<Long, Card> cardsInDeck = cardRepository.findByDeckId(deckId).stream()
+                .collect(Collectors.toMap(Card::getId, Function.identity()));
 
-        if (card == null) {
-            throw new IllegalStateException("Card not found in session map for id: " + node.cardId);
+        List<Card> changed = new ArrayList<>();
+        for (SavePrioritiesRequest.PriorityUpdate update : request.getPriorities()) {
+            Card card = cardsInDeck.get(update.getCardId());
+            if (card != null) {
+                card.setPriority(update.getPriority());
+                changed.add(card);
+            }
         }
-        
-        return new CardResponse(card.getId(), card.getFrontText(), card.getBackText(), node.priority);
+        cardRepository.saveAll(changed);
     }
 }

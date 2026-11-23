@@ -41,15 +41,8 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(HttpStatus.NOT_FOUND.value(), ex.getMessage()));
     }
 
-    @ExceptionHandler(EmptyDeckException.class)
-    public ResponseEntity<ErrorResponse> handleEmptyDeck(EmptyDeckException ex) {
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(HttpStatus.BAD_REQUEST.value(), ex.getMessage()));
-    }
-
-    // IllegalArgumentException is thrown by the data structure layer when a null or
-    // invalid argument is passed. Surfaces as 400 since it indicates bad input.
+    // IllegalArgumentException is thrown when a null or invalid argument reaches the
+    // model (e.g. a Deck or Card built without required fields). Surfaces as 400.
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity
@@ -57,8 +50,8 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(HttpStatus.BAD_REQUEST.value(), ex.getMessage()));
     }
 
-    // IllegalStateException is thrown when an internal invariant is violated (e.g.
-    // a card ID from the heap is not found in the session map). Always a server-side bug.
+    // IllegalStateException is thrown when an internal invariant is violated.
+    // Always a server-side bug.
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
         logger.error("Illegal state encountered", ex);

@@ -1,16 +1,12 @@
 package com.flashcards.service;
 
-import com.flashcards.dto.request.NextCardRequest;
-import com.flashcards.dto.response.CardResponse;
-import com.flashcards.dto.response.StudyStartResponse;
+import com.flashcards.dto.request.SavePrioritiesRequest;
 
-// Every method takes the id of the logged-in user and only works on that user's decks.
+// Study runs in the browser: it loads a deck once, schedules the cards itself, and
+// sends the new priorities back in batches. The server keeps no study state, so any
+// copy of the deck service can handle any request.
 public interface StudyService {
 
-    // Builds a fresh study session for the given deck and returns the first card
-    // along with the total number of cards in the deck.
-    StudyStartResponse startSession(Long userId, Long deckId);
-
-    // Reschedules the card just viewed, then returns the next card due.
-    CardResponse nextCard(Long userId, Long deckId, NextCardRequest request);
+    // Saves new priorities for cards in one of the user's own decks.
+    void savePriorities(Long userId, Long deckId, SavePrioritiesRequest request);
 }

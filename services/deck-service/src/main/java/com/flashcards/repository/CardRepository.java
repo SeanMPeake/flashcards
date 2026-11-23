@@ -8,7 +8,7 @@ import java.util.List;
 public interface CardRepository extends JpaRepository<Card, Long> {
 
     // Loads all cards belonging to a given deck.
-    // Used when building a study session to populate the heap and hash map.
+    // Used when saving a batch of study priorities, to change only that deck's cards.
     List<Card> findByDeckId(Long deckId);
 
     // Returns the number of cards in a deck.
