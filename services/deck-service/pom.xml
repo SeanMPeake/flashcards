@@ -26,11 +26,16 @@
 		<url/>
 	</scm>
 	<dependencies>
-		<!-- Shared contracts: JwtVerifier for checking login tokens -->
+		<!-- Shared contracts: JwtVerifier for checking login tokens, study event classes -->
 		<dependency>
 			<groupId>com.flashcards</groupId>
 			<artifactId>common</artifactId>
 			<version>${project.version}</version>
+		</dependency>
+		<!-- RabbitMQ (AMQP) messaging: publishes study events. Version managed by Spring Boot. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-amqp</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

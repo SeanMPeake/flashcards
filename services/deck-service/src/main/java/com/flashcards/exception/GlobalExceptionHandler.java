@@ -41,6 +41,16 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(HttpStatus.NOT_FOUND.value(), ex.getMessage()));
     }
 
+    // The save succeeded but the event couldn't reach the broker: 503 tells the
+    // browser to retry the same batch later.
+    @ExceptionHandler(EventPublishException.class)
+    public ResponseEntity<ErrorResponse> handleEventPublish(EventPublishException ex) {
+        logger.warn("Study event could not be published; the client will retry", ex);
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ErrorResponse(HttpStatus.SERVICE_UNAVAILABLE.value(), ex.getMessage()));
+    }
+
     // IllegalArgumentException is thrown when a null or invalid argument reaches the
     // model (e.g. a Deck or Card built without required fields). Surfaces as 400.
     @ExceptionHandler(IllegalArgumentException.class)

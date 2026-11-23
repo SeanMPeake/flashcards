@@ -2,6 +2,7 @@ package com.flashcards.controller;
 
 import com.flashcards.common.security.AuthenticatedUser;
 import com.flashcards.exception.DeckNotFoundException;
+import com.flashcards.exception.EventPublishException;
 import com.flashcards.security.JwtAuthFilter;
 import com.flashcards.service.StudyService;
 import org.junit.jupiter.api.DisplayName;
@@ -11,6 +12,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -31,32 +33,51 @@ class StudyControllerTest {
 
     private static final AuthenticatedUser USER = new AuthenticatedUser(1L, "SeanPeake");
 
+    private static final String IDS =
+            "\"batchId\":\"11111111-1111-1111-1111-111111111111\","
+            + "\"sessionId\":\"22222222-2222-2222-2222-222222222222\",";
+
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
     private StudyService studyService;
 
-    private org.springframework.test.web.servlet.ResultActions putPriorities(String json) throws Exception {
+    private ResultActions putProgress(String json) throws Exception {
         return mockMvc.perform(put("/api/study/1/priorities")
                 .requestAttr(JwtAuthFilter.AUTHENTICATED_USER, USER)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json));
     }
 
+    // A valid body with the given priorities array.
+    private String body(String priorities) {
+        return "{" + IDS + "\"cardsReviewed\":2,\"cardsFlagged\":1,\"priorities\":" + priorities + "}";
+    }
+
     @Test
     @DisplayName("PUT /api/study/{deckId}/priorities saves the batch and returns 204")
-    void savesPriorities() throws Exception {
-        putPriorities("{\"priorities\":[{\"cardId\":4,\"priority\":17},{\"cardId\":9,\"priority\":23}]}")
+    void savesProgress() throws Exception {
+        putProgress(body("[{\"cardId\":4,\"priority\":17},{\"cardId\":9,\"priority\":23}]"))
                 .andExpect(status().isNoContent());
 
         then(studyService).should().savePriorities(eq(1L), eq(1L), any());
     }
 
     @Test
-    @DisplayName("An empty batch returns 400")
+    @DisplayName("A batch without a batchId returns 400")
+    void rejectsMissingBatchId() throws Exception {
+        putProgress("{\"sessionId\":\"22222222-2222-2222-2222-222222222222\","
+                + "\"cardsReviewed\":1,\"cardsFlagged\":0,\"priorities\":[{\"cardId\":4,\"priority\":17}]}")
+                .andExpect(status().isBadRequest());
+
+        then(studyService).should(never()).savePriorities(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("An empty priorities list returns 400")
     void rejectsEmptyBatch() throws Exception {
-        putPriorities("{\"priorities\":[]}")
+        putProgress(body("[]"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
 
@@ -66,7 +87,7 @@ class StudyControllerTest {
     @Test
     @DisplayName("A negative priority returns 400")
     void rejectsNegativePriority() throws Exception {
-        putPriorities("{\"priorities\":[{\"cardId\":4,\"priority\":-5}]}")
+        putProgress(body("[{\"cardId\":4,\"priority\":-5}]"))
                 .andExpect(status().isBadRequest());
 
         then(studyService).should(never()).savePriorities(any(), any(), any());
@@ -75,7 +96,7 @@ class StudyControllerTest {
     @Test
     @DisplayName("A null entry in the batch returns 400, not 500")
     void rejectsNullEntry() throws Exception {
-        putPriorities("{\"priorities\":[null]}")
+        putProgress(body("[null]"))
                 .andExpect(status().isBadRequest());
 
         then(studyService).should(never()).savePriorities(any(), any(), any());
@@ -84,7 +105,7 @@ class StudyControllerTest {
     @Test
     @DisplayName("A priority above the upper bound returns 400")
     void rejectsPriorityAboveMaximum() throws Exception {
-        putPriorities("{\"priorities\":[{\"cardId\":4,\"priority\":2147483647}]}")
+        putProgress(body("[{\"cardId\":4,\"priority\":2147483647}]"))
                 .andExpect(status().isBadRequest());
 
         then(studyService).should(never()).savePriorities(any(), any(), any());
@@ -95,8 +116,19 @@ class StudyControllerTest {
     void returnsNotFoundForAnotherUsersDeck() throws Exception {
         willThrow(new DeckNotFoundException(1L)).given(studyService).savePriorities(eq(1L), eq(1L), any());
 
-        putPriorities("{\"priorities\":[{\"cardId\":4,\"priority\":17}]}")
+        putProgress(body("[{\"cardId\":4,\"priority\":17}]"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Deck not found with id: 1"));
+    }
+
+    @Test
+    @DisplayName("If the event can't be published, returns 503 so the browser retries")
+    void returnsServiceUnavailableWhenBrokerIsDown() throws Exception {
+        willThrow(new EventPublishException(new RuntimeException("broker down")))
+                .given(studyService).savePriorities(eq(1L), eq(1L), any());
+
+        putProgress(body("[{\"cardId\":4,\"priority\":17}]"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.status").value(503));
     }
 }
