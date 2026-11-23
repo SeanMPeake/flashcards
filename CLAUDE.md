@@ -26,7 +26,7 @@
   service's classes into another.
 - Shared code goes only in a `common` module: event classes and JWT validation,
   no business logic. Event changes are additive only (never rename or remove fields).
-- The nginx gateway (gateway/nginx.conf) is the single entry point; each new service
+- The nginx gateway (gateway/default.conf.template) is the single entry point; each new service
   gets a location block there rather than CORS configuration.
 - When proposing a design choice, state which quality attribute ("ility") it gains
   and which it costs — the course grades on this.

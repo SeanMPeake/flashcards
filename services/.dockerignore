@@ -1,4 +1,0 @@
-# Local build output and secrets never go into an image
-**/target/
-**/HELP.md
-**/application-local.properties

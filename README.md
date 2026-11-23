@@ -60,7 +60,9 @@ One service (plus any shared modules it depends on):
 ```
 flashcards/
 ├── frontend/                 HTML, CSS, JS modules (served by the gateway)
-├── gateway/                  nginx config: serves frontend, routes /api/ to services
+├── gateway/                  nginx image: serves frontend, routes /api/ to services
+│   ├── Dockerfile            Builds nginx with the frontend and routing built in
+│   └── default.conf.template Routes; service addresses filled in from environment variables
 ├── services/                 One folder per microservice
 │   ├── pom.xml               Parent build: shared versions, builds all modules
 │   ├── common/               Shared library: JWT validation (contracts only, no business logic)

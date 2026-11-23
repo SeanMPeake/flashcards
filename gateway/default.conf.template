@@ -1,0 +1,26 @@
+# nginx gateway configuration, as a template. When the nginx container starts, it
+# fills in the ${...} values from environment variables and writes the result to
+# /etc/nginx/conf.d/default.conf. The same image works locally and on a cloud host;
+# only the values differ (see docker-compose.yml):
+#   PORT               port the gateway listens on (80 locally; the host's port in the cloud)
+#   USER_SERVICE_HOST  host:port of the user service (user-service:8080 locally)
+#   DECK_SERVICE_HOST  host:port of the deck service (deck-service:8080 locally)
+server {
+    listen ${PORT};
+
+    # Serve the frontend's static files (index.html, styles.css, js/)
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+    }
+
+    # Forward user/account requests to the user service
+    location /api/users/ {
+        proxy_pass http://${USER_SERVICE_HOST};
+    }
+
+    # Forward all other API requests to the deck service
+    location /api/ {
+        proxy_pass http://${DECK_SERVICE_HOST};
+    }
+}
