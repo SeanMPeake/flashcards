@@ -50,6 +50,7 @@ export const studyEmptyStateTextEl = studyEmptyStateEl.querySelector("p");
 export const prevButtonEl = document.getElementById("prev-button");
 export const nextButtonEl = document.getElementById("next-button");
 export const markForReviewCheckboxEl = document.getElementById("mark-for-review-checkbox");
+export const saveStatusEl = document.getElementById("save-status");
 
 // Edit deck selection
 export const editBackToHomeButtonEl = document.getElementById("edit-back-to-home-button");

@@ -1,6 +1,7 @@
-import { startStudySession, nextStudyCard } from "./api.js";
+import { fetchDeckById } from "./api.js";
 import { NavigationStack } from "./NavigationStack.js";
 import { CardViewSet } from "./CardViewSet.js";
+import { finishSaving, recordPriority, startSaving } from "./studySaver.js";
 import {
     deckTitleEl,
     cardPositionEl,
@@ -12,13 +13,22 @@ import {
     studyEmptyStateTextEl,
     prevButtonEl,
     nextButtonEl,
-    markForReviewCheckboxEl
+    markForReviewCheckboxEl,
+    saveStatusEl
 } from "./dom.js";
+
+// Study runs entirely in the browser. Opening a deck loads all its cards once;
+// after that, choosing the next card needs no server call. New priorities are
+// saved in the background by studySaver.js.
+//
+// Scheduling: the card with the lowest priority comes next. After a card is
+// reviewed, its priority grows by the deck size (back of the queue), or by half
+// the deck size when marked for review (middle of the queue).
 
 // State for the active study session.
 let currentDeckId = null;
-let currentCard = null;   // { id, frontText, backText, priority }
-let currentDeckCardCount = 0;
+let cards = [];           // every card in the deck: { id, frontText, backText, priority }
+let currentCard = null;
 let isFlipped = false;
 
 // Browsable navigation history — tracks cards viewed this session so the user
@@ -39,7 +49,20 @@ function setStudyEmptyState(title, message) {
 // Updates the card position indicator with the current unique-view count.
 function updatePositionDisplay() {
     const seen = viewedCards ? viewedCards.count : 0;
-    cardPositionEl.textContent = `${seen} of ${currentDeckCardCount} cards seen`;
+    cardPositionEl.textContent = `${seen} of ${cards.length} cards seen`;
+}
+
+// The card due next: the lowest priority, with ties going to the lower card id so
+// the order is always predictable. A deck is a few dozen cards, so a simple scan
+// is instant and easier to read than a heap.
+function nextDueCard() {
+    let due = cards[0];
+    for (const card of cards) {
+        if (card.priority < due.priority || (card.priority === due.priority && card.id < due.id)) {
+            due = card;
+        }
+    }
+    return due;
 }
 
 function renderCard() {
@@ -63,21 +86,34 @@ function renderCard() {
 }
 
 // Called when the user selects a deck from the deck selection screen.
-// Starts a fresh session on the backend and renders the first card.
+// Loads the whole deck once and shows the card due first.
 export async function setSelectedDeck(deckId, deckName) {
+    await finishSaving();   // save anything left from a previously studied deck
+
     currentDeckId = deckId;
+    cards = [];
     currentCard = null;
-    currentDeckCardCount = 0;
     isFlipped = false;
     history.clear();
 
     deckTitleEl.textContent = deckName;
+    saveStatusEl.textContent = "";
 
     try {
-        const { card, totalCards } = await startStudySession(deckId);
-        currentCard = card;
-        currentDeckCardCount = totalCards;
-        viewedCards = new CardViewSet(totalCards);
+        const deck = await fetchDeckById(deckId);
+        cards = deck.cards;
+
+        if (cards.length === 0) {
+            cardPositionEl.textContent = "";
+            setStudyEmptyState("No Cards Found", "This deck does not have any cards yet.");
+            prevButtonEl.disabled = true;
+            nextButtonEl.disabled = true;
+            return;
+        }
+
+        startSaving(deckId);
+        viewedCards = new CardViewSet(cards.length);
+        currentCard = nextDueCard();
         history.push(currentCard);
         renderCard();
     } catch (error) {
@@ -87,10 +123,17 @@ export async function setSelectedDeck(deckId, deckName) {
     }
 }
 
+// Called when leaving study (Back, Home, Log out): saves outstanding progress,
+// then clears the session.
+export async function leaveStudy() {
+    await finishSaving();
+    clearSelectedDeck();
+}
+
 export function clearSelectedDeck() {
     currentDeckId = null;
+    cards = [];
     currentCard = null;
-    currentDeckCardCount = 0;
     history.clear();
     if (viewedCards) viewedCards.clear();
 }
@@ -100,6 +143,7 @@ export function renderStudyView() {
     if (!currentCard) {
         deckTitleEl.textContent = "Deck Title";
         cardPositionEl.textContent = "";
+        saveStatusEl.textContent = "";
         setStudyEmptyState("No Deck Selected", "Choose a deck to begin studying.");
         prevButtonEl.disabled = true;
         nextButtonEl.disabled = true;
@@ -131,9 +175,10 @@ export function flipCard() {
 }
 
 // Navigates to the next card.
-// If the cursor is not at the live edge, moves forward through history without
-// calling the backend. At the live edge, asks the scheduler for the next card.
-export async function showNextCard() {
+// If the cursor is not at the live edge, moves forward through history. At the
+// live edge, reschedules the current card and shows the card due next, with no
+// server call; the new priority is saved in the background.
+export function showNextCard() {
     if (!currentCard) {
         return;
     }
@@ -145,26 +190,14 @@ export async function showNextCard() {
         return;
     }
 
-    const markForReview = markForReviewCheckboxEl.checked;
+    const step = markForReviewCheckboxEl.checked ? Math.floor(cards.length / 2) : cards.length;
+    currentCard.priority += step;
+    recordPriority(currentCard.id, currentCard.priority);
 
-    nextButtonEl.disabled = true;
-
-    try {
-        const nextCard = await nextStudyCard(
-            currentDeckId,
-            currentCard.id,
-            currentCard.priority,
-            markForReview
-        );
-        currentCard = nextCard;
-        isFlipped = false;
-        history.push(currentCard);
-        renderCard();
-    } catch (error) {
-        nextButtonEl.disabled = false;
-        cardPositionEl.textContent = error.message;
-        setTimeout(() => updatePositionDisplay(), 5000);
-    }
+    currentCard = nextDueCard();
+    isFlipped = false;
+    history.push(currentCard);
+    renderCard();
 }
 
 // Navigates back to the previous card in history without affecting the scheduler.

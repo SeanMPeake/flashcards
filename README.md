@@ -4,8 +4,9 @@ A web-based study tool for organizing flashcards into decks and reviewing them t
 
 ## Features
 
+- User accounts (signup, login, logout); each user sees and studies only their own decks
 - Create, edit, and delete decks and cards through a browser-based interface
-- Study mode presents cards in scheduler-determined order using a min-heap algorithm
+- Study mode presents cards in priority order, scheduled in the browser; progress is saved in the background
 - Mark a card for earlier re-review during a session
 - Navigate backward and forward through previously viewed cards without affecting the scheduler
 - Session coverage display tracks unique cards seen per session
@@ -81,11 +82,10 @@ flashcards/
 
 This project is being restructured into a multi-service application. The original single-app version, including its BRD and sprint notes, is preserved in the [v1.0-dsa-final release](https://github.com/SeanMPeake/flashcards/releases/tag/v1.0-dsa-final).
 
-## Custom Data Structures
+## How Study Works
 
-Four data structures implemented from scratch:
+Study runs in the browser. Opening a deck loads all its cards once; the card with the lowest priority comes next, and after each review its priority grows by the deck size (or half the deck size when marked for review). No server call is needed between cards, so the deck service keeps no study state.
 
-- **MinHeap** (Java) — priority queue for study session scheduling
-- **CardHashMap** (Java) — hash table with separate chaining for card lookup by ID
-- **NavigationStack** (JavaScript) — cursor-based browsable history for prev/next navigation
-- **CardViewSet** (JavaScript) — hash set tracking unique cards flipped during a session
+New priorities are saved to the deck service in batches (every 5 cards and when leaving study). If the server can't be reached, studying continues and the save is retried with exponential backoff. The server never lowers a stored priority, so late or retried saves, and two tabs studying the same deck, merge correctly.
+
+The frontend also uses two small custom structures: **NavigationStack** (browsable prev/next history) and **CardViewSet** (unique cards seen this session). The original Java MinHeap and CardHashMap from the data structures course are preserved in the [v1.0-dsa-final release](https://github.com/SeanMPeake/flashcards/releases/tag/v1.0-dsa-final).

@@ -518,6 +518,12 @@ h2 {
     color: #b3261e;
 }
 
+.save-status {
+    margin: 4px 0 0;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
 .remember-label {
     display: flex;
     align-items: center;

@@ -26,6 +26,7 @@ import {
 import { clearDeckList, renderDeckList, setDeckListStatus, showView } from "./view.js";
 import {
     clearSelectedDeck,
+    leaveStudy,
     flipCard,
     renderStudyView,
     setSelectedDeck,
@@ -63,9 +64,15 @@ function showLogin(message) {
 
 initLoginView(showHome);
 
-homeButtonEl.addEventListener("click", showHome);
+// Leaving study (by any route) saves outstanding progress first.
+homeButtonEl.addEventListener("click", async () => {
+    await leaveStudy();
+    showHome();
+});
 
-logoutButtonEl.addEventListener("click", () => {
+// Save while the login token is still valid, then log out.
+logoutButtonEl.addEventListener("click", async () => {
+    await leaveStudy();
     clearSession();
     showLogin();
 });
@@ -167,13 +174,14 @@ backToHomeButtonEl.addEventListener("click", () => {
     showView("welcome");
 });
 
-backToDecksButtonEl.addEventListener("click", () => {
+backToDecksButtonEl.addEventListener("click", async () => {
+    await leaveStudy();
     showView("deckSelection");
 });
 
 flashcardEl.addEventListener("click", flipCard);
 prevButtonEl.addEventListener("click", showPreviousCard);
-nextButtonEl.addEventListener("click", async () => await showNextCard());
+nextButtonEl.addEventListener("click", showNextCard);
 
 // On page load: a valid saved login goes straight home; otherwise log in.
 renderStudyView();
