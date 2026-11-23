@@ -86,6 +86,6 @@ This project is being restructured into a multi-service application. The origina
 
 Study runs in the browser. Opening a deck loads all its cards once; the card with the lowest priority comes next, and after each review its priority grows by the deck size (or half the deck size when marked for review). No server call is needed between cards, so the deck service keeps no study state.
 
-New priorities are saved to the deck service in batches (every 5 cards and when leaving study). If the server can't be reached, studying continues and the save is retried with exponential backoff. The server never lowers a stored priority, so late or retried saves, and two tabs studying the same deck, merge correctly.
+New priorities are saved to the deck service in batches (every 5 cards and when leaving study). If the server can't be reached, studying continues and the save is retried with exponential backoff, even after leaving study. The server never lowers a stored priority (it checks and writes in one atomic update), so late or retried saves, simultaneous saves, and two tabs studying the same deck all merge correctly.
 
 The frontend also uses two small custom structures: **NavigationStack** (browsable prev/next history) and **CardViewSet** (unique cards seen this session). The original Java MinHeap and CardHashMap from the data structures course are preserved in the [v1.0-dsa-final release](https://github.com/SeanMPeake/flashcards/releases/tag/v1.0-dsa-final).

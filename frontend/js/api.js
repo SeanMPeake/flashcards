@@ -22,7 +22,9 @@ async function apiFetch(url, options = {}) {
     if (response.status === 401) {
         clearSession();
         onUnauthorized();
-        throw new Error("Your session has ended. Please log in again.");
+        const error = new Error("Your session has ended. Please log in again.");
+        error.unauthorized = true;   // callers must stop, not retry: there is no token any more
+        throw error;
     }
     return response;
 }
@@ -151,18 +153,24 @@ export async function deleteCard(deckId, cardId) {
     }
 }
 
+// How long one save may take before it is treated as failed (and retried later).
+const SAVE_TIMEOUT_MS = 5000;
+
 // Saves a batch of study priorities: [{ cardId, priority }, ...].
-// keepalive lets the request finish even if the page is closing.
+// keepalive lets the request finish even if the page is closed while it is on its
+// way; the timeout stops a save from hanging when the server doesn't answer.
 //
-// On failure, the thrown Error's `permanent` flag says whether retrying can help:
-// a 400 (rejected data) or 404 (deck deleted) will fail the same way every time;
-// a network error or server error might succeed later.
-export async function savePriorities(deckId, priorities, keepalive = false) {
+// On failure, the thrown Error says whether retrying can help:
+// - `permanent`: a 400 (rejected data) or 404 (deck deleted) fails the same way every time;
+// - `unauthorized` (from apiFetch): the login has ended, so there is nothing to retry with;
+// - otherwise (network error, server error, timeout) it might succeed later.
+export async function savePriorities(deckId, priorities) {
     const response = await apiFetch(`/api/study/${deckId}/priorities`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ priorities }),
-        keepalive
+        keepalive: true,
+        signal: AbortSignal.timeout(SAVE_TIMEOUT_MS)
     });
     if (!response.ok) {
         const error = new Error("Unable to save study progress.");

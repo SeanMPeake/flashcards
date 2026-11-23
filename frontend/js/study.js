@@ -1,7 +1,7 @@
 import { fetchDeckById } from "./api.js";
 import { NavigationStack } from "./NavigationStack.js";
 import { CardViewSet } from "./CardViewSet.js";
-import { finishSaving, recordPriority, startSaving } from "./studySaver.js";
+import { recordPriority, saveNow, showSaveStatus } from "./studySaver.js";
 import {
     deckTitleEl,
     cardPositionEl,
@@ -88,8 +88,6 @@ function renderCard() {
 // Called when the user selects a deck from the deck selection screen.
 // Loads the whole deck once and shows the card due first.
 export async function setSelectedDeck(deckId, deckName) {
-    await finishSaving();   // save anything left from a previously studied deck
-
     currentDeckId = deckId;
     cards = [];
     currentCard = null;
@@ -101,6 +99,12 @@ export async function setSelectedDeck(deckId, deckName) {
 
     try {
         const deck = await fetchDeckById(deckId);
+
+        // The user may have left study or opened another deck while this deck was
+        // loading; a late response must not replace the deck now on screen.
+        if (currentDeckId !== deckId) {
+            return;
+        }
         cards = deck.cards;
 
         if (cards.length === 0) {
@@ -111,23 +115,28 @@ export async function setSelectedDeck(deckId, deckName) {
             return;
         }
 
-        startSaving(deckId);
+        showSaveStatus();
         viewedCards = new CardViewSet(cards.length);
         currentCard = nextDueCard();
         history.push(currentCard);
         renderCard();
     } catch (error) {
+        if (currentDeckId !== deckId) {
+            return;   // the user has already moved on
+        }
         setStudyEmptyState("Unable to Start Session", error.message);
         prevButtonEl.disabled = true;
         nextButtonEl.disabled = true;
     }
 }
 
-// Called when leaving study (Back, Home, Log out): saves outstanding progress,
-// then clears the session.
-export async function leaveStudy() {
-    await finishSaving();
+// Called when leaving study (Back, Home): clears the session and starts saving any
+// outstanding progress without waiting for it, so leaving never hangs. If the
+// server can't be reached, the save keeps retrying in the background. Returns the
+// save attempt, for callers that need to wait (Log out, before the token is cleared).
+export function leaveStudy() {
     clearSelectedDeck();
+    return saveNow();
 }
 
 export function clearSelectedDeck() {
@@ -190,9 +199,10 @@ export function showNextCard() {
         return;
     }
 
-    const step = markForReviewCheckboxEl.checked ? Math.floor(cards.length / 2) : cards.length;
+    // At least 1, so marking a card in a one-card deck still moves it (half of 1 rounds to 0).
+    const step = markForReviewCheckboxEl.checked ? Math.max(1, Math.floor(cards.length / 2)) : cards.length;
     currentCard.priority += step;
-    recordPriority(currentCard.id, currentCard.priority);
+    recordPriority(currentDeckId, currentCard.id, currentCard.priority);
 
     currentCard = nextDueCard();
     isFlipped = false;

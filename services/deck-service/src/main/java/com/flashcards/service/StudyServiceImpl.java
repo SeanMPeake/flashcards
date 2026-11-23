@@ -2,18 +2,12 @@ package com.flashcards.service;
 
 import com.flashcards.dto.request.SavePrioritiesRequest;
 import com.flashcards.exception.DeckNotFoundException;
-import com.flashcards.model.Card;
 import com.flashcards.repository.CardRepository;
 import com.flashcards.repository.DeckRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.time.Instant;
 
 @Service
 public class StudyServiceImpl implements StudyService {
@@ -28,16 +22,17 @@ public class StudyServiceImpl implements StudyService {
 
     // Saves a batch of priorities from the browser in one transaction.
     //
-    // Only cards in this deck, which this user owns, are ever changed. Card ids that
-    // aren't in the deck are skipped rather than failing the whole batch: a card
-    // deleted in another tab mid-study must not make the save fail forever (the
-    // browser would keep retrying it), and ids from other decks are never touched.
-    //
-    // A priority is never lowered. Each review only adds to a card's priority, so a
-    // lower value is always an older one: a batch that arrives late, a retried save,
-    // or a second tab studying the same deck. Keeping the highest value lets all of
-    // them merge correctly without timestamps (and the same rule settles a card
-    // listed twice in one batch).
+    // Each entry is applied with a single conditional UPDATE (see
+    // CardRepository.raisePriority), which only changes a card that is in this deck
+    // and only raises its priority:
+    // - Card ids not in this deck change nothing, so ids from other decks are never
+    //   touched, and a card deleted mid-study can't make the save fail forever.
+    // - A priority is never lowered. Each review only adds to a card's priority, so
+    //   a lower value is always an older one: a late batch, a retried save, or a
+    //   second tab on the same deck. Keeping the highest value lets them all merge
+    //   correctly without timestamps, and a card listed twice keeps its highest value.
+    // - The database compares and writes in one atomic step, so two saves arriving
+    //   at the same moment can't lower a priority either.
     @Transactional
     @Override
     public void savePriorities(Long userId, Long deckId, SavePrioritiesRequest request) {
@@ -46,22 +41,9 @@ public class StudyServiceImpl implements StudyService {
             throw new DeckNotFoundException(deckId);
         }
 
-        // Load only the cards named in the batch, then keep the ones in this deck.
-        List<Long> requestedIds = request.getPriorities().stream()
-                .map(SavePrioritiesRequest.PriorityUpdate::getCardId)
-                .toList();
-        Map<Long, Card> cardsInDeck = cardRepository.findAllById(requestedIds).stream()
-                .filter(card -> card.getDeck().getId().equals(deckId))
-                .collect(Collectors.toMap(Card::getId, Function.identity()));
-
-        Set<Card> changed = new LinkedHashSet<>();
+        Instant now = Instant.now();
         for (SavePrioritiesRequest.PriorityUpdate update : request.getPriorities()) {
-            Card card = cardsInDeck.get(update.getCardId());
-            if (card != null && update.getPriority() > card.getPriority()) {
-                card.setPriority(update.getPriority());
-                changed.add(card);
-            }
+            cardRepository.raisePriority(deckId, update.getCardId(), update.getPriority(), now);
         }
-        cardRepository.saveAll(changed);
     }
 }

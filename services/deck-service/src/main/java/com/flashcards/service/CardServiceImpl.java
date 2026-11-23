@@ -29,9 +29,10 @@ public class CardServiceImpl implements CardService {
         Deck deck = deckRepository.findByIdAndOwnerUserId(deckId, userId)
                 .orElseThrow(() -> new DeckNotFoundException(deckId));
 
-        // New cards are assigned priority = current deck size + 1, giving each card
-        // a unique starting value and placing it at the back of the scheduling queue.
-        int priority = cardRepository.countByDeckId(deckId) + 1;
+        // A new card goes to the back of the study queue: one more than the highest
+        // priority in the deck. (Deck size + 1 would put it ahead of cards whose
+        // priorities have grown through study, so it would keep coming up first.)
+        int priority = cardRepository.findMaxPriority(deckId) + 1;
         Card card = new Card(deck, request.getFrontText(), request.getBackText(), priority);
 
         return toResponse(cardRepository.save(card));

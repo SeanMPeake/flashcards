@@ -1,6 +1,7 @@
 import { fetchDeckSummaries, setUnauthorizedHandler } from "./api.js";
 import { clearSession, getUsername, isLoggedIn } from "./auth.js";
 import { initLoginView, resetLoginView } from "./login.js";
+import { stopSaving } from "./studySaver.js";
 import {
     sessionUsernameEl,
     homeButtonEl,
@@ -64,22 +65,29 @@ function showLogin(message) {
 
 initLoginView(showHome);
 
-// Leaving study (by any route) saves outstanding progress first.
-homeButtonEl.addEventListener("click", async () => {
-    await leaveStudy();
+// Leaving study starts saving outstanding progress in the background; navigation
+// doesn't wait for it.
+homeButtonEl.addEventListener("click", () => {
+    leaveStudy();
     showHome();
 });
 
-// Save while the login token is still valid, then log out.
+// Log out waits for one save attempt (at most a few seconds) while the login token
+// is still valid; after logout there is no token left to retry with.
 logoutButtonEl.addEventListener("click", async () => {
     await leaveStudy();
+    stopSaving();
     clearSession();
     showLogin();
 });
 
 // Any deck or study request that comes back 401 means the token is missing or
-// expired: return to the login screen.
-setUnauthorizedHandler(() => showLogin("Your session has ended. Please log in again."));
+// expired: stop background saving (it can't succeed without a token) and return
+// to the login screen.
+setUnauthorizedHandler(() => {
+    stopSaving();
+    showLogin("Your session has ended. Please log in again.");
+});
 
 // The deck selection screen only needs summary data, not full card payloads.
 async function loadDeckSummaries() {
@@ -174,8 +182,8 @@ backToHomeButtonEl.addEventListener("click", () => {
     showView("welcome");
 });
 
-backToDecksButtonEl.addEventListener("click", async () => {
-    await leaveStudy();
+backToDecksButtonEl.addEventListener("click", () => {
+    leaveStudy();
     showView("deckSelection");
 });
 
